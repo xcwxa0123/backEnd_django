@@ -135,3 +135,104 @@ class UserViewSet(viewsets.ModelViewSet):
 在这个例子中，我们通过增加 `@action` 装饰器和 `set_password()` 方法，为 `UserViewSet` 视图集增加了一个新的 action。这个动作将会映射到路由的URL模式 `users/<pk>/set_password/` 上。在这种情况下，注册这个后续定义的viewset之后，'router.urls'列表将包括其他一条映射到了新动作：'/users/<pk>/set_password/'。
 
 总之，`register()` 函数使得我们可以轻松地将视图集映射到 URL 模式，并自动生成 URLConf。这可以大大简化 Django REST 框架应用程序的开发，并且使我们的代码更易于管理和维护。
+
+
+好的，下面是一些简要步骤：
+
+1. 部署 DRF 后端应用程序：
+
+- 在 EC2 实例上安装 Python 和 pip
+- 克隆你的 DRF 项目到 EC2 实例上
+- 安装并激活虚拟环境
+- 安装必要的依赖项（使用 requirements.txt 文件）
+- 运行 Django 应用程序（使用 Gunicorn 或 uWSGI）
+
+2. 部署 Nuxt.js 前端应用程序
+
+- 在 EC2 实例上安装 Node.js 和 npm
+- 克隆你的 Nuxt.js 项目到 EC2 实例上
+- 安装和构建您的项目（使用npm install 和 npm run build命令）
+
+3. 开放端口
+
+确保在 EC2 安全组中打开端口，以允许外部流量访问：
+
+- 确保端口 80 和/或 443（如果使用 HTTPS）已打开
+- 如果需要，也可以打开其他自定义端口
+
+4. 部署 NGINX
+
+使用 NGINX 反向代理将前端和后端连接起来。配置文件可能如下所示：
+
+```nginx
+server {
+    listen 80;
+    server_name example.com;
+
+    location /api/ {
+        proxy_pass http://localhost:8000/;
+    }
+
+    location / {
+        alias /path/to/nuxt/dist/;
+        try_files $uri $uri/ @nuxt;
+    }
+
+    location @nuxt {
+        rewrite ^(.*)$ /index.html last;
+    }
+}
+```
+
+5. 部署 SSL 证书
+
+如果您使用 HTTPS，则需要在 Apache 或 NGINX 上安装 SSL 证书以启用加密连接。
+
+这是一个大致的指南，但是涉及到的过程可能会更复杂。建议您阅读有关 Amazon EC2、Django、Nuxt.js、NGINX 和 SSL 的详细文档，并确保按照最佳实践进行部署。
+
+可以按照以下步骤在EC2实例上安装并激活虚拟环境：
+
+1. 使用SSH连接到您的EC2实例。
+
+2. 确认您已经安装了Python和pip。如果没有，请使用以下命令安装：
+
+```
+sudo apt-get update
+sudo apt-get install python3-pip
+```
+
+3. 安装virtualenv
+
+```
+sudo pip3 install virtualenv
+```
+
+4. 创建新的虚拟环境
+
+```
+python3 -m venv myenv
+```
+
+此命令将创建一个名为`myenv`的目录，其中包含要使用的虚拟环境。您可以将名称更改为自己喜欢的名称。
+
+5. 激活虚拟环境
+
+```
+source myenv/bin/activate
+```
+
+激活虚拟环境后，您会注意到终端会显示环境名称（例如`myenv`）。
+
+6. 使用虚拟环境进行开发
+
+现在您可以使用虚拟环境来安装和使用任何依赖项，而不会影响主机系统或其他应用程序。
+
+7. 退出虚拟环境
+
+当您完成操作时，可以通过输入以下命令来退出虚拟环境：
+
+```
+deactivate
+```
+
+这样就可以回到系统默认环境。
