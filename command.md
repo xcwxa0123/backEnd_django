@@ -14,3 +14,8 @@ sudo systemctl status nginx
 sudo systemctl stop nginx
 
 sudo systemctl enable nginx
+
+
+sudo systemctl restart gunicorn.service
+
+pm2 start ./index.mjs --name=nuxt_app
