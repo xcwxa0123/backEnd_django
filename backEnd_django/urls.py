@@ -9,7 +9,7 @@ router.register(r'books', BookViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('api/books/list', BookViewSet.as_view({'get': 'get_books_byhot'}), name='book-list'),
-    path('api/books/detail', BookViewSet.as_view({'get': 'get_page_detail'}), name='book-detail'),
-    path('admin/', admin.site.urls),
+    path('implapi/books/list', BookViewSet.as_view({'get': 'get_books_byhot'}), name='book-list'),
+    path('implapi/books/detail', BookViewSet.as_view({'get': 'get_page_detail'}), name='book-detail'),
+    # path('admin/', admin.site.urls),
 ]
