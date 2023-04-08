@@ -9,7 +9,7 @@ from rest_framework.decorators import api_view
 
 from rest_framework.response import Response
 from django.http import HttpResponse
-from .controllers import PageDealController, GetPageDetailController
+from .controllers import PageDealController, GetPageDetailController, GetEpisodeTextController
 
 
 
@@ -34,10 +34,10 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateM
     queryset = Book.objects.all()
     serializer_class = BookSerializer(queryset, many=True)
 
-    @action(detail=False, methods=['get'])
-    def get_books_byhot(self, request):
-        # serializer = self.get_serializer(self.queryset, many=True)
-        return
+    # @action(detail=False, methods=['get'])
+    # def get_books_byhot(self, request):
+    #     # serializer = self.get_serializer(self.queryset, many=True)
+    #     return
 
     
     # @server.route('/pageRes', methods=['GET'])
@@ -52,6 +52,12 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateM
     def get_page_detail(self, request, *args, **kwargs):
         page_href = request.query_params.get('pageHref', None)
         res = GetPageDetailController().getPageDetail(page_href)
+        return HttpResponse(json.dumps(res, ensure_ascii=False))
+    
+    @action(detail=False, methods=['get'])
+    def get_episode_text(self, request, *args, **kwargs):
+        page_href = request.query_params.get('pageHref', None)
+        res = GetEpisodeTextController().getEpisodeText(page_href)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
     
     # @action(detail=False, methods=['get'])
