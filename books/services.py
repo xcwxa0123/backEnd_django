@@ -88,15 +88,6 @@ class GetEpisodeTextService(BaseService):
     @classmethod
     def get_episode_text(cls, page_href="/works/1177354054893434437/episodes/1177354054893434453"):
         soup = cls().get_soup("https://kakuyomu.jp{}".format(page_href))
-        # author name
-        # author_name = soup.select('#workAuthor-activityName a')[0]
-        # # state number
-        # [number_of_episode, publish_state] = soup.select('.widget-toc-workStatus span')
-        # # last refresh time
-        # last_time = soup.select('.widget-toc-date time span')[0]
-        # # episode data
-        # epi_data = soup.select('.widget-toc-items.test-toc-items li')
-        # epi_list = cls().get_epilist(epi_data)
         return {
             "episode_text": extract_text.trans_text(soup)
         }

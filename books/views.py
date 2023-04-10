@@ -34,26 +34,21 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateM
     queryset = Book.objects.all()
     serializer_class = BookSerializer(queryset, many=True)
 
-    # @action(detail=False, methods=['get'])
-    # def get_books_byhot(self, request):
-    #     # serializer = self.get_serializer(self.queryset, many=True)
-    #     return
-
-    
-    # @server.route('/pageRes', methods=['GET'])
+    # books/list
     @action(detail=False, methods=['get'])
     def get_books_byhot(self, request, *args, **kwargs):
         page_index = request.query_params.get('pageIndex', None)
         res = PageDealController().pageDeal(page_index)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
 
-    # @server.route('/getPageDetail', methods=['GET'])
+    # books/detail
     @action(detail=False, methods=['get'])
     def get_page_detail(self, request, *args, **kwargs):
         page_href = request.query_params.get('pageHref', None)
         res = GetPageDetailController().getPageDetail(page_href)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
     
+    # episode/text
     @action(detail=False, methods=['get'])
     def get_episode_text(self, request, *args, **kwargs):
         page_href = request.query_params.get('pageHref', None)
@@ -77,8 +72,3 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateM
     #     serializer.is_valid(raise_exception=True)
     #     self.perform_create(serializer)
     #     return Response(serializer.data)
-
-
-# @api_view(['GET'])
-# def examapi(self):
-#     return Response({'message': 'Value received'})

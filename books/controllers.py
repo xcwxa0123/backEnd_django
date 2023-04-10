@@ -16,29 +16,18 @@ class GetPageDetailController:
 # 获取列表
 class PageDealController:
     def pageDeal(self, page_index):
-        book_msg_list = None
-        msg = ''
-        code = 0
-        data = None
+        resData = {}
         if not page_index:
             page_index = 0
         try:
-            book_msg_list = PageDealService.get_book_msg(page_index)
+        # 这里数据格式有问题
+            resData = PageDealService.get_book_msg(page_index)
         except Exception as e:
-            print(e)
-            code = 500
-            msg = e
-            data = None
+            return { 'data': {}, 'code': 500, 'msg': e }
         else:
-            code = 200
-            msg = 'success'
-            data = book_msg_list
-        res = {
-            'code': code,
-            'msg': msg,
-            'data': data
-        }
-        return res
+            return { 'data': resData, 'code': 200, 'msg': 'success' }
+
+# 获取章节内容
 class GetEpisodeTextController:
     def getEpisodeText(self, page_href):
         resData = {}
