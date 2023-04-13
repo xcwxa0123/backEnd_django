@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from .tools import extract_text
+from .views import BookViewSet, EpisodeViewSet
 class BaseService:
     @classmethod
     def get_soup(self, url):
@@ -13,7 +14,7 @@ class BaseService:
 
 
 # GetPageDetailService.get_page_detail('/works/1177354054894027232')
-
+# 列表接口
 class PageDealService(BaseService):
     @classmethod
     def get_book_msg(cls, page_index):
@@ -32,16 +33,20 @@ class PageDealService(BaseService):
             if left_moudle:
                 book_title = left_moudle.find('a', class_='widget-workCard-titleLabel bookWalker-work-title').text
                 boot_auther = left_moudle.find('a', class_='widget-workCard-authorLabel').text
+                author_href = left_moudle.find('a', class_='widget-workCard-authorLabel')['href']
                 book_desc = left_moudle.select('.widget-workCard-introduction a')[0].text
                 book_href = left_moudle.find('a', class_='widget-workCard-titleLabel bookWalker-work-title')['href']
                 boot_dist = {
                     'book_title': book_title,
                     'boot_auther': boot_auther,
+                    'author_href': author_href,
                     'book_desc': book_desc,
                     'book_href': book_href 
                 }
                 book_list.append(boot_dist)
         return book_list
+    
+# 详情接口
 class GetPageDetailService(BaseService):
     @classmethod
     def get_page_detail(cls, page_href):
@@ -84,6 +89,7 @@ class GetPageDetailService(BaseService):
     
     
 # /works/1177354054893434437/episodes/1177354054893434453
+# 下载接口
 class GetEpisodeTextService(BaseService):
     @classmethod
     def get_episode_text(cls, page_href="/works/1177354054893434437/episodes/1177354054893434453"):
