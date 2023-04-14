@@ -19,6 +19,8 @@ class Book(models.Model):
     publish_state = models.CharField(max_length=10)
     # 上次更新时间
     last_time = models.DateField(blank=False, null=False)
+    # 总话数
+    number_of_episode = models.CharField(max_length=10)
 
     def __str__(self):
         return self.title
@@ -35,6 +37,6 @@ class Episode(models.Model):
     # 章节上一次更新时间
     refresh_time = models.DateField(blank=False, null=False)
     # 该章节是否需要更新，0-不需要，1-需要
-    isupdated = models.CharField(max_length=10, default=0)
+    isupdated = models.CharField(max_length=10, default=1)
     # 该章节在服务器上储存地址
-    server_address = models.TextField(blank=False, null=False)
+    server_address = models.TextField(blank=False, null=False, default='')

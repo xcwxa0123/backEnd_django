@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from .tools import extract_text
-from .views import BookViewSet, EpisodeViewSet
+from .controllers import AuthorCURDController, BookCURDController, EpisodeCURDController
 class BaseService:
     @classmethod
     def get_soup(self, url):
@@ -46,6 +46,34 @@ class PageDealService(BaseService):
                 book_list.append(boot_dist)
         return book_list
     
+    # 进表操作
+    @classmethod
+    def update_hotlist(cls, page_index):
+        soup = cls().get_soup("https://kakuyomu.jp/tags/%E7%99%BE%E5%90%88?page={}".format(page_index))
+        # 大模块
+        moudle_list = soup.find_all('div', class_='widget-work float-parent')
+        for moudle in moudle_list:
+            # left_moudle = len(moudle.select('.float-left')) ? moudle.select('.float-left')[0] : None
+            left_moudle = None if not len(moudle.select('.float-left')) else moudle.select('.float-left')[0]
+            # print(left_moudle)
+            if left_moudle:
+                book_title = left_moudle.find('a', class_='widget-workCard-titleLabel bookWalker-work-title').text
+                author_name = left_moudle.find('a', class_='widget-workCard-authorLabel').text
+                author_href = left_moudle.find('a', class_='widget-workCard-authorLabel')['href']
+                book_desc = left_moudle.select('.widget-workCard-introduction a')[0].text
+                book_href = left_moudle.find('a', class_='widget-workCard-titleLabel bookWalker-work-title')['href']
+                author_id = author_href.split('/')[-1]
+                book_id = book_href.split('/')[-1]
+                author_data = { 'author_id': author_id, 'author_name': author_name }
+                book_data = { 'book_id': book_id, 'author_id': author_id, 'book_title': book_title, 'book_desc': book_desc }
+                try:
+                    AuthorCURDController.create_author(author_data)
+                    BookCURDController.create_book(book_data)
+                    GetPageDetailService.update_detail(book_href)
+                except Exception as e:
+                    print(f'ERROR================>{e}')
+                
+    
 # 详情接口
 class GetPageDetailService(BaseService):
     @classmethod
@@ -68,6 +96,27 @@ class GetPageDetailService(BaseService):
             'episode_data': epi_list,
         }
 
+    # 进表操作
+    @classmethod
+    def update_detail(cls, page_href):
+        soup = cls().get_soup("https://kakuyomu.jp{}".format(page_href))
+        # state number
+        [number_of_episode, publish_state] = soup.select('.widget-toc-workStatus span')
+        # last refresh time
+        last_time = soup.select('.widget-toc-date time span')[0]
+        # episode data
+        book_id = page_href.split('/')[-1]
+        book_data = {
+            'book_id': book_id, 
+            # 需转成时间格式
+            'last_time': last_time.text, 
+            'number_of_episode': number_of_episode.text, 
+            'publish_state': 0 if publish_state.text == '完結済' else 1 
+        }
+        BookCURDController.update_book(book_data)
+
+        epi_data = soup.select('.widget-toc-items.test-toc-items li')
+        cls().update_epilist(epi_data, book_id)
 
     def get_epilist(self, lst):
         result = {}
@@ -86,6 +135,25 @@ class GetPageDetailService(BaseService):
                     'href': item.find('a')['href']
                 })
         return [value for _, value in result.items()]
+    
+    def update_epilist(self, lst, book_id):
+        current_maintitle = None
+        for _, item in enumerate(lst):
+            if 'widget-toc-chapter' in item.attrs['class']:
+                current_maintitle = item.find('span').text
+            elif current_maintitle is not None:
+                episode_id = item.find('a')['href'].split('/')[-1]
+                episode_data = {
+                    'episode_id': episode_id,
+                    'book_id': book_id,
+                    'main_title': current_maintitle,
+                    'sub_title': item.find('span').text,
+                    # 需要转成时间格式
+                    'refresh_time': item.find('time').text,
+                    # 'isupdated': current_maintitle,
+                    # 'server_address': current_maintitle,
+                }
+                EpisodeCURDController.create_episode(episode_data)
     
     
 # /works/1177354054893434437/episodes/1177354054893434453
