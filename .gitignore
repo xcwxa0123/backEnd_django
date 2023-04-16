@@ -1,2 +1,17 @@
 
+backEnd_django/*.pyc
+books/*.pyc
 *.pyc
+books/*.sqlite3
+backEnd_django/*.sqlite3
+db.sqlite3
+books/__pycache__/admin.cpython-311.pyc
+books/__pycache__/controllers.cpython-311.pyc
+books/__pycache__/models.cpython-311.pyc
+books/__pycache__/serializers.cpython-311.pyc
+books/__pycache__/services.cpython-311.pyc
+books/__pycache__/views.cpython-311.pyc
+books/tools/__pycache__/extract_text.cpython-311.pyc
+backEnd_django/__pycache__/urls.cpython-311.pyc
+backEnd_django/__pycache__/settings.cpython-311.pyc
+

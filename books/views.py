@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 
 from rest_framework.response import Response
 from django.http import HttpResponse
-from .controllers import PageDealController, GetPageDetailController, GetEpisodeTextController
+from .controllers import PageDealController, GetPageDetailController, GetEpisodeTextController, UpdateHotlistController
 
 class AuthorViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin):
     queryset = Author.objects.all()
@@ -29,6 +29,13 @@ class BookViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.Cre
     def get_page_detail(self, request, *args, **kwargs):
         page_href = request.query_params.get('pageHref', None)
         res = GetPageDetailController().getPageDetail(page_href)
+        return HttpResponse(json.dumps(res, ensure_ascii=False))
+    
+    # update
+    @action(detail=False, methods=['get'])
+    def update_hotlist(self, request, *args, **kwargs):
+        pageIndex = request.query_params.get('pageIndex', None)
+        res = UpdateHotlistController().update_hotlist(pageIndex)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
     
 

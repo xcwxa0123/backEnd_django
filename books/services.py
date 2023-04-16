@@ -1,7 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 from .tools import extract_text
-from .controllers import AuthorCURDController, BookCURDController, EpisodeCURDController
+from .curd_controllers import AuthorCURDController, BookCURDController, EpisodeCURDController
+import time
 class BaseService:
     @classmethod
     def get_soup(self, url):
@@ -18,6 +19,7 @@ class BaseService:
 class PageDealService(BaseService):
     @classmethod
     def get_book_msg(cls, page_index):
+        print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         soup = cls().get_soup("https://kakuyomu.jp/tags/%E7%99%BE%E5%90%88?page={}".format(page_index))
         # 大模块
         moudle_list = soup.find_all('div', class_='widget-work float-parent')
@@ -49,6 +51,7 @@ class PageDealService(BaseService):
     # 进表操作
     @classmethod
     def update_hotlist(cls, page_index):
+        print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         soup = cls().get_soup("https://kakuyomu.jp/tags/%E7%99%BE%E5%90%88?page={}".format(page_index))
         # 大模块
         moudle_list = soup.find_all('div', class_='widget-work float-parent')
@@ -65,24 +68,30 @@ class PageDealService(BaseService):
                 author_id = author_href.split('/')[-1]
                 book_id = book_href.split('/')[-1]
                 author_data = { 'author_id': author_id, 'author_name': author_name }
+                print(f'author_data============>{author_data}')
                 book_data = { 'book_id': book_id, 'author_id': author_id, 'book_title': book_title, 'book_desc': book_desc }
+                print(f'book_data============>{book_data}')
                 try:
-                    AuthorCURDController.create_author(author_data)
-                    BookCURDController.create_book(book_data)
-                    GetPageDetailService.update_detail(book_href)
+                    time.sleep(5)
+                    AuthorCURDController().update_author(author_data)
+                    GetPageDetailService.update_detail(book_href, book_data)
+                    # BookCURDController().create_book(book_data)
                 except Exception as e:
                     print(f'ERROR================>{e}')
+                    return f'update faild!{e}'
+        return 'update success!'
                 
     
 # 详情接口
 class GetPageDetailService(BaseService):
     @classmethod
     def get_page_detail(cls, page_href):
+        print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         soup = cls().get_soup("https://kakuyomu.jp{}".format(page_href))
         # author name
         author_name = soup.select('#workAuthor-activityName a')[0]
         # state number
-        [number_of_episode, publish_state] = soup.select('.widget-toc-workStatus span')
+        [publish_state, number_of_episode] = soup.select('.widget-toc-workStatus span')
         # last refresh time
         last_time = soup.select('.widget-toc-date time span')[0]
         # episode data
@@ -98,25 +107,23 @@ class GetPageDetailService(BaseService):
 
     # 进表操作
     @classmethod
-    def update_detail(cls, page_href):
+    def update_detail(cls, page_href, book_data):
+        print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         soup = cls().get_soup("https://kakuyomu.jp{}".format(page_href))
         # state number
-        [number_of_episode, publish_state] = soup.select('.widget-toc-workStatus span')
+        [publish_state, number_of_episode] = soup.select('.widget-toc-workStatus span')
         # last refresh time
         last_time = soup.select('.widget-toc-date time span')[0]
         # episode data
-        book_id = page_href.split('/')[-1]
-        book_data = {
-            'book_id': book_id, 
-            # 需转成时间格式
+        book_data.update({
             'last_time': last_time.text, 
             'number_of_episode': number_of_episode.text, 
             'publish_state': 0 if publish_state.text == '完結済' else 1 
-        }
-        BookCURDController.update_book(book_data)
+        })
+        BookCURDController().update_book(book_data)
 
         epi_data = soup.select('.widget-toc-items.test-toc-items li')
-        cls().update_epilist(epi_data, book_id)
+        cls().update_epilist(epi_data, book_data['book_id'])
 
     def get_epilist(self, lst):
         result = {}
@@ -148,12 +155,11 @@ class GetPageDetailService(BaseService):
                     'book_id': book_id,
                     'main_title': current_maintitle,
                     'sub_title': item.find('span').text,
-                    # 需要转成时间格式
                     'refresh_time': item.find('time').text,
-                    # 'isupdated': current_maintitle,
-                    # 'server_address': current_maintitle,
+                    'isupdated': 1,
+                    'server_address': '',
                 }
-                EpisodeCURDController.create_episode(episode_data)
+                EpisodeCURDController().update_episode(episode_data)
     
     
 # /works/1177354054893434437/episodes/1177354054893434453
@@ -161,6 +167,7 @@ class GetPageDetailService(BaseService):
 class GetEpisodeTextService(BaseService):
     @classmethod
     def get_episode_text(cls, page_href="/works/1177354054893434437/episodes/1177354054893434453"):
+        print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         soup = cls().get_soup("https://kakuyomu.jp{}".format(page_href))
         return {
             "episode_text": extract_text.trans_text(soup)
