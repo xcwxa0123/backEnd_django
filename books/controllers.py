@@ -1,4 +1,4 @@
-from .services import GetPageDetailService, PageDealService, GetEpisodeTextService
+from .services import GetPageDetailService, PageDealService, GetEpisodeTextService, GetEpisodeListService
 # 获取详情
 class GetPageDetailController:
     def getPageDetail(self, page_href):
@@ -40,6 +40,19 @@ class GetEpisodeTextController:
             return { 'data': {}, 'code': 500, 'msg': e }
         else:
             return { 'data': resData, 'code': 200, 'msg': 'success' }
+
+class GetEpisodeListController:    
+    def getEpisodeList(self, book_id, cls):
+        resData = None
+        if not book_id:
+            return { 'data': {}, 'code': 500, 'msg': '主键id有误' }
+        try:
+            
+            resData = GetEpisodeListService.get_episode_list(book_id, cls)
+        except Exception as e:
+            return { 'data': {}, 'code': 500, 'msg': e }
+        else:
+            return { 'data': resData, 'code': 200, 'msg': 'success' }
         
 
 class UpdateHotlistController:
@@ -51,7 +64,8 @@ class UpdateHotlistController:
             
             resData = PageDealService.update_hotlist(page_index)
         except Exception as e:
-            return { 'data': {}, 'code': 500, 'msg': e }
+            print(f'e================>{e}')
+            return { 'data': {}, 'code': 500, 'msg': str(e) }
         else:
             return { 'data': resData, 'code': 200, 'msg': 'success' }
         

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'books',
     'debug_toolbar',
+    'django_filters',
 ]
 
 MIDDLEWARE = [

@@ -44,6 +44,7 @@ class BookCURDController:
             publish_state=book_data['publish_state'],
             last_time=book_data['last_time'],
             number_of_episode=book_data['number_of_episode'],
+            hot_rank=book_data['hot_rank']
         )
         new_book.full_clean()
         new_book.save()

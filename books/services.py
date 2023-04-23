@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 from .tools import extract_text
 from .curd_controllers import AuthorCURDController, BookCURDController, EpisodeCURDController
 import time
+from books.models import Book, Episode
+import json
 class BaseService:
     @classmethod
     def get_soup(self, url):
@@ -55,7 +57,7 @@ class PageDealService(BaseService):
         soup = cls().get_soup("https://kakuyomu.jp/tags/%E7%99%BE%E5%90%88?page={}".format(page_index))
         # 大模块
         moudle_list = soup.find_all('div', class_='widget-work float-parent')
-        for moudle in moudle_list:
+        for index, moudle in enumerate(moudle_list):
             # left_moudle = len(moudle.select('.float-left')) ? moudle.select('.float-left')[0] : None
             left_moudle = None if not len(moudle.select('.float-left')) else moudle.select('.float-left')[0]
             # print(left_moudle)
@@ -67,9 +69,10 @@ class PageDealService(BaseService):
                 book_href = left_moudle.find('a', class_='widget-workCard-titleLabel bookWalker-work-title')['href']
                 author_id = author_href.split('/')[-1]
                 book_id = book_href.split('/')[-1]
+                hot_rank = index + 1
                 author_data = { 'author_id': author_id, 'author_name': author_name }
                 print(f'author_data============>{author_data}')
-                book_data = { 'book_id': book_id, 'author_id': author_id, 'book_title': book_title, 'book_desc': book_desc }
+                book_data = { 'book_id': book_id, 'author_id': author_id, 'book_title': book_title, 'book_desc': book_desc, 'hot_rank': hot_rank }
                 print(f'book_data============>{book_data}')
                 try:
                     time.sleep(5)
@@ -172,3 +175,21 @@ class GetEpisodeTextService(BaseService):
         return {
             "episode_text": extract_text.trans_text(soup)
         }
+    
+# /works/1177354054893434437/episodes/1177354054893434453
+# 下载接口
+class GetEpisodeListService(BaseService):
+    @classmethod
+    def get_episode_list(self, book_id, cls):
+        # book = Book.objects.get(book_id=book_id)
+        episode_list = Episode.objects.filter(book_id__book_id=book_id)
+        
+        page = cls.paginate_queryset(episode_list)
+        if page is not None:
+            serializer = cls.get_serializer(page, many=True)
+
+        serializer = cls.get_serializer(episode_list, many=True)
+        
+        res = json.dumps(serializer.data, ensure_ascii=False)
+        print(type(json.loads(res)))
+        return json.loads(res)
