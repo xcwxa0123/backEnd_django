@@ -16,18 +16,18 @@ class AuthorViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     serializer_class = AuthorSerializer
 
 class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
-    queryset = Book.objects.all()
+    queryset = Book.objects.all().order_by('hot_rank')
     serializer_class = BookSerializer
     pagination_class = BookPageNation
-    ordering_fields = ['hot_rank']
-    ordering = '-hot_rank'
+    # ordering_fields = ['hot_rank']
+    # ordering = '-hot_rank'
 
     # books/list
-    @action(detail=False, methods=['get'])
-    def get_books_byhot(self, request, *args, **kwargs):
-        page_index = request.query_params.get('pageIndex', None)
-        res = PageDealController().pageDeal(page_index)
-        return HttpResponse(json.dumps(res, ensure_ascii=False))
+    # @action(detail=False, methods=['get'])
+    # def get_books_byhot(self, request, *args, **kwargs):
+    #     page_index = request.query_params.get('pageIndex', None)
+    #     res = PageDealController().pageDeal(page_index)
+    #     return HttpResponse(json.dumps(res, ensure_ascii=False))
 
     # books/detail
     @action(detail=False, methods=['get'])

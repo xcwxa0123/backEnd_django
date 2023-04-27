@@ -22,7 +22,7 @@ class Book(models.Model):
     # 总话数
     number_of_episode = models.CharField(max_length=10)
     # 热度
-    hot_rank = models.CharField(max_length=10, blank=False)
+    hot_rank = models.IntegerField(blank=False)
 
 class Episode(models.Model):
     # 主键章节ID
