@@ -97,6 +97,8 @@ class GetPageDetailService(BaseService):
         [publish_state, number_of_episode] = soup.select('.widget-toc-workStatus span')
         # last refresh time
         last_time = soup.select('.widget-toc-date time span')[0]
+        # full_desc
+        full_desc = soup.select('#introduction')[0].text.replace('…続きを読む', "")
         # episode data
         epi_data = soup.select('.widget-toc-items.test-toc-items li')
         epi_list = cls().get_epilist(epi_data)
@@ -105,6 +107,7 @@ class GetPageDetailService(BaseService):
             'number_of_episode': number_of_episode.text,
             'publish_state': publish_state.text,
             'last_time': last_time.text,
+            'full_desc': full_desc,
             'episode_data': epi_list,
         }
 
@@ -117,11 +120,14 @@ class GetPageDetailService(BaseService):
         [publish_state, number_of_episode] = soup.select('.widget-toc-workStatus span')
         # last refresh time
         last_time = soup.select('.widget-toc-date time span')[0]
+        # full_desc
+        full_desc = soup.select('#introduction')[0].text.replace('…続きを読む', "")
         # episode data
         book_data.update({
-            'last_time': last_time.text, 
+            'last_time': last_time.text,
+            'full_desc': full_desc,
             'number_of_episode': number_of_episode.text, 
-            'publish_state': 0 if publish_state.text == '完結済' else 1 
+            'publish_state': 0 if publish_state.text == '完結済' else 1
         })
         BookCURDController().update_book(book_data)
 

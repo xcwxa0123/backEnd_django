@@ -38,9 +38,10 @@ class BookCURDController:
         new_book = Book(
             book_id=book_data['book_id'],
             # author_id=book_data['author_id'],
-            author_id=author,
+            author=author,
             book_title=book_data['book_title'],
             book_desc=book_data['book_desc'],
+            full_desc=book_data['full_desc'],
             publish_state=book_data['publish_state'],
             last_time=book_data['last_time'],
             number_of_episode=book_data['number_of_episode'],
@@ -80,7 +81,7 @@ class EpisodeCURDController:
         new_episode = Episode(
             episode_id=episode_data['episode_id'],
             # book_id=episode_data['book_id'],
-            book_id=book,
+            book=book,
             main_title=episode_data['main_title'],
             sub_title=episode_data['sub_title'],
             refresh_time=episode_data['refresh_time'],

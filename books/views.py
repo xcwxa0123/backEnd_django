@@ -15,7 +15,7 @@ class AuthorViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
 
-class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
+class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = Book.objects.all().order_by('hot_rank')
     serializer_class = BookSerializer
     pagination_class = BookPageNation
@@ -44,7 +44,7 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
         return HttpResponse(json.dumps(res, ensure_ascii=False))
     
 
-class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
+class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = Episode.objects.all()
     serializer_class = EpisodeSerializer
     filter_backends = [filters.DjangoFilterBackend]

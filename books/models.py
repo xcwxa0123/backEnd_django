@@ -10,7 +10,7 @@ class Book(models.Model):
     # 主键书ID
     book_id = models.CharField(max_length=100, primary_key=True)
     # 作者ID,外键关联
-    author_id = models.ForeignKey(Author, to_field='author_id', on_delete=models.CASCADE, related_name='books')
+    author = models.ForeignKey(Author, to_field='author_id', on_delete=models.CASCADE, related_name='books')
     # 书名
     book_title = models.TextField(blank=False, null=False)
     # 简介
@@ -23,12 +23,14 @@ class Book(models.Model):
     number_of_episode = models.CharField(max_length=10)
     # 热度
     hot_rank = models.IntegerField(blank=False)
+    # 详情(全)
+    full_desc = models.TextField(blank=False, null=False, default='')
 
 class Episode(models.Model):
     # 主键章节ID
     episode_id = models.CharField(max_length=100, primary_key=True)
     # 外键书ID
-    book_id = models.ForeignKey(Book, to_field='book_id', on_delete=models.CASCADE, related_name='episodes')
+    book = models.ForeignKey(Book, to_field='book_id', on_delete=models.CASCADE, related_name='episodes')
     # 大章节标题
     main_title = models.TextField(blank=False, null=False)
     # 小章节标题
