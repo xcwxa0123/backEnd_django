@@ -14,6 +14,7 @@ urlpatterns = [
     # path('implapi/books/detail', BookViewSet.as_view({'get': 'get_page_detail'}), name='book-detail'),
     # path('implapi/episode/list', EpisodeViewSet.as_view({'get': 'get_episode_list'}), name='episode-list'),
     path('implapi/episode/text', EpisodeViewSet.as_view({'get': 'get_episode_text'}), name='episode-text'),
+    path('implapi/episode/getFile', EpisodeViewSet.as_view({'get': 'get_episode_file'}), name='episode-file'),
     path('implapi/books/updateList', BookViewSet.as_view({'get': 'update_hotlist'}), name='update-hotlist'),
     path('admin/', admin.site.urls),
 ]

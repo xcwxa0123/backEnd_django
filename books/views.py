@@ -7,9 +7,10 @@ from rest_framework.decorators import action
 
 from rest_framework.response import Response
 from django.http import HttpResponse, JsonResponse
-from .controllers import PageDealController, GetPageDetailController, GetEpisodeTextController, UpdateHotlistController, GetEpisodeListController
+from .controllers import PageDealController, GetPageDetailController, GetEpisodeTextController, UpdateHotlistController, GetEpisodeListController, GetEpisodeFileController
 from .tools.page_nation import BookPageNation
 from .tools.episode_filter import EpisodeListFilter
+import urllib.parse
 
 class AuthorViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = Author.objects.all()
@@ -51,12 +52,24 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
     filterset_class = EpisodeListFilter
     # pagination_class = BookPageNation
         
-    # episode/text
+    # episode/file
     @action(detail=False, methods=['get'])
-    def get_episode_text(self, request, *args, **kwargs):
-        page_href = request.query_params.get('pageHref', None)
-        res = GetEpisodeTextController().getEpisodeText(page_href)
-        return HttpResponse(json.dumps(res, ensure_ascii=False))
+    def get_episode_file(self, request, *args, **kwargs):
+        book_id = request.query_params.get('bookId', None)
+        episode_id = request.query_params.get('episodeId', None)
+        res = GetEpisodeFileController().getEpisodeFile(book_id, episode_id)
+        code = res.get('code')
+        data = res.get('data')
+        print(f'res======>', res)
+        if code == 200 and data.get('file_addr'):
+            with open(data.get('file_addr'), 'rb') as f:
+                filename = urllib.parse.quote(data.get('file_name'), safe='')
+                response = HttpResponse(f.read())
+                response['Content-Type'] = 'text/plain'
+                response['Content-Disposition'] = 'attachment; filename="{}.txt"'.format(filename)
+                return response
+        else:
+            return HttpResponse(json.dumps(res, ensure_ascii=False))
     
     # episode/list
     @action(detail=False, methods=['get'])

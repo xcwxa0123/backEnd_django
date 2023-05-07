@@ -2,9 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from .tools import extract_text
 from .curd_controllers import AuthorCURDController, BookCURDController, EpisodeCURDController
-import time
-from books.models import Book, Episode
-import json
+from books.models import Author, Book, Episode
+import time, os, json
 class BaseService:
     @classmethod
     def get_soup(self, url):
@@ -171,19 +170,52 @@ class GetPageDetailService(BaseService):
                 EpisodeCURDController().update_episode(episode_data)
     
     
-# /works/1177354054893434437/episodes/1177354054893434453
+# /works/16816700429263197780/episodes/16817330656452046849
 # 下载接口
 class GetEpisodeTextService(BaseService):
     @classmethod
-    def get_episode_text(cls, page_href="/works/1177354054893434437/episodes/1177354054893434453"):
+    def set_file(cls, book_id, episode_id):
         print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        soup = cls().get_soup("https://kakuyomu.jp{}".format(page_href))
-        return {
-            "episode_text": extract_text.trans_text(soup)
-        }
+        soup = cls().get_soup("https://kakuyomu.jp/works/{0}/episodes/{1}".format(book_id, episode_id))
+        text_content = extract_text.trans_text(soup)
+        storage_path = os.getenv('STORAGE_PATH')
+        # 创建持久层储存地址
+        dir_addr = extract_text.find_dir(name=book_id, path=storage_path)
+        # 存文件
+        file_addr = extract_text.set_file(text=text_content, file_addr='{0}/{1}.txt'.format(dir_addr, episode_id))
+        return file_addr
+        
+    @classmethod
+    def get_episode_file(cls, book_id, episode_id):
+        # 先根据服务器地址查文件，如果没有再创建文件(并缓存至缓存地址改名)然后抛出服务器地址
+        # 缓存地址一天一清理(打包再用)
+        episode_obj = Episode.objects.get(episode_id=episode_id)
+        print(f'episode_obj====>{episode_obj}')
+        file_addr = episode_obj.server_address
+        file_name = '{0}-{1}'.format(episode_obj.main_title, episode_obj.sub_title)
+        print(f'file_addr====>{file_addr}')
+        if not file_addr:
+            # 存文件
+            file_addr = cls.set_file(book_id, episode_id)
+            if file_addr:
+                episode_obj.server_address = file_addr
+                episode_obj.save()
+                print(f'episode_obj====>{episode_obj}')
+            else:
+                print(f'episode_obj====>{episode_obj}')
+            # 创建缓存区地址(留着给打包用吧，单个文件不用)
+            # extract_text.find_dir(name=os.path.join(book_id, episode_id), path=storage_path)
+        elif os.path.isfile(file_addr):
+            # 如果有文件在，直接抛了读
+            print(f'strength throung episode_obj====>{episode_obj}')
+        else:
+            file_addr = cls.set_file(book_id, episode_id)
+
+        return { 'file_addr': file_addr, 'file_name': file_name}
+
     
 # /works/1177354054893434437/episodes/1177354054893434453
-# 下载接口
+# 章节接口，废弃不用
 class GetEpisodeListService(BaseService):
     @classmethod
     def get_episode_list(self, book_id, cls):

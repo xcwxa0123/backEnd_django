@@ -40,6 +40,18 @@ class GetEpisodeTextController:
             return { 'data': {}, 'code': 500, 'msg': e }
         else:
             return { 'data': resData, 'code': 200, 'msg': 'success' }
+class GetEpisodeFileController:
+    def getEpisodeFile(self, book_id, episode_id):
+        resData = {}
+        if not book_id or not episode_id:
+            return { 'data': {}, 'code': 500, 'msg': '主键id有误' }
+        try:
+            
+            resData = GetEpisodeTextService.get_episode_file(book_id, episode_id)
+        except Exception as e:
+            return { 'data': {}, 'code': 500, 'msg': e }
+        else:
+            return { 'data': resData, 'code': 200, 'msg': 'success' }
 
 class GetEpisodeListController:    
     def getEpisodeList(self, book_id, cls):
