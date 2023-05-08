@@ -29,13 +29,13 @@ class PageDealController:
 
 # 获取章节内容
 class GetEpisodeTextController:
-    def getEpisodeText(self, page_href):
+    def getEpisodeText(self, book_id, episode_id):
         resData = {}
-        if not page_href:
+        if not book_id or not episode_id:
             return { 'data': {}, 'code': 500, 'msg': '主键id有误' }
         try:
             
-            resData = GetEpisodeTextService.get_episode_text(page_href)
+            resData = GetEpisodeTextService.get_episode_text(book_id, episode_id)
         except Exception as e:
             return { 'data': {}, 'code': 500, 'msg': e }
         else:

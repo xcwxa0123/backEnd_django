@@ -65,12 +65,21 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             with open(data.get('file_addr'), 'rb') as f:
                 filename = urllib.parse.quote(data.get('file_name'), safe='')
                 response = HttpResponse(f.read())
-                response['Content-Type'] = 'text/plain'
+                response['Content-Type'] = 'application/octet-stream'
                 response['Content-Disposition'] = 'attachment; filename="{}.txt"'.format(filename)
                 return response
         else:
             return HttpResponse(json.dumps(res, ensure_ascii=False))
     
+    # episode/text
+    @action(detail=False, methods=['get'])
+    def get_episode_text(self, request, *args, **kwargs):
+        book_id = request.query_params.get('bookId', None)
+        episode_id = request.query_params.get('episodeId', None)
+        res = GetEpisodeTextController().getEpisodeText(book_id, episode_id)
+        return HttpResponse(json.dumps(res, ensure_ascii=False))
+        
+
     # episode/list
     @action(detail=False, methods=['get'])
     def get_episode_list(self, request, *args, **kwargs):

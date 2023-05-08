@@ -212,6 +212,40 @@ class GetEpisodeTextService(BaseService):
             file_addr = cls.set_file(book_id, episode_id)
 
         return { 'file_addr': file_addr, 'file_name': file_name}
+    
+    @classmethod
+    def get_episode_text(cls, book_id, episode_id):
+        # 先根据服务器地址查文件，如果没有再创建文件(并缓存至缓存地址改名)然后抛出服务器地址
+        # 缓存地址一天一清理(打包再用)
+        episode_obj = Episode.objects.get(episode_id=episode_id)
+        file_addr = episode_obj.server_address
+        file_name = '{0}-{1}'.format(episode_obj.main_title, episode_obj.sub_title)
+        print(f'file_addr====>{file_addr}')
+        if not file_addr:
+            # 存文件
+            file_addr = cls.set_file(book_id, episode_id)
+            if file_addr:
+                episode_obj.server_address = file_addr
+                episode_obj.save()
+                print(f'episode_obj====>{episode_obj}')
+            else:
+                print(f'episode_obj====>{episode_obj}')
+            # 创建缓存区地址(留着给打包用吧，单个文件不用)
+            # extract_text.find_dir(name=os.path.join(book_id, episode_id), path=storage_path)
+        elif os.path.isfile(file_addr):
+            # 如果有文件在，直接抛了读
+            print(f'strength throung episode_obj====>{episode_obj}')
+        else:
+            file_addr = cls.set_file(book_id, episode_id)
+
+        file_content = ''
+        try:
+            with open(file_addr, 'r', encoding='utf-8') as file:
+                file_content = file.read()
+        except FileNotFoundError as e:
+            file_content = ''
+
+        return { 'file_content': file_content, 'file_name': file_name}
 
     
 # /works/1177354054893434437/episodes/1177354054893434453
