@@ -1,11 +1,11 @@
 from django.test import TestCase
-from books.services import GetPageDetailService, GetEpisodeTextService
+from books.services import EpisodeService
 from books.tools import extract_text
 import os
 # Create your tests here.
-# GetPageDetailService.get_page_detail_test('/works/16817330653667739518')
 # /works/16816700429263197780/episodes/16817330656452046849
-GetEpisodeTextService.get_episode_file(book_id='16816700429263197780', episode_id='16817330656452046849')
+content = EpisodeService.get_episode_text(book_id='16816700429263197780', episode_id='16817330656452046849')
+print(f'content=======>{ content }')
 
 
 
