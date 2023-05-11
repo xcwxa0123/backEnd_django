@@ -20,7 +20,7 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retriev
     serializer_class = BookSerializer
     pagination_class = BookPageNation
     # update
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['GET'])
     def update_hotlist(self, request, *args, **kwargs):
         pageIndex = request.query_params.get('pageIndex', None)
         res = UpdateController().update_hotlist(pageIndex)
@@ -35,7 +35,7 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
     # pagination_class = BookPageNation
         
     # episode/file
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['GET'])
     def get_episode_file(self, request, *args, **kwargs):
         book_id = request.query_params.get('bookId', None)
         episode_id = request.query_params.get('episodeId', None)
@@ -53,16 +53,16 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
             return HttpResponse(json.dumps(res, ensure_ascii=False))
     
     # episode/text
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['GET'])
     def get_episode_text(self, request, *args, **kwargs):
         book_id = request.query_params.get('bookId', None)
         episode_id = request.query_params.get('episodeId', None)
         res = EpisodeController().getEpisodeText(book_id, episode_id)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
         
-    @action(detail=False, methods=['get'])
+    # @action(detail=False, methods=['POST'])
     def update_episodelist(self, request, *args, **kwargs):
-        book_id = request.query_params.get('bookId', None)
+        book_id = request.data.get('bookId', None)
         res = UpdateController().update_episodelist(book_id)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
     # episode/list

@@ -2,8 +2,10 @@ import requests
 from bs4 import BeautifulSoup
 from .tools import extract_text
 from .curd_controllers import AuthorCURDController, BookCURDController, EpisodeCURDController
-from books.models import Episode
+from books.models import Book, Episode
 import time, os
+import pdb
+
 class BaseService:
     @classmethod
     def get_soup(self, url):
@@ -63,19 +65,49 @@ class UpdateService(BaseService):
         # full_desc
         full_desc = soup.select('#introduction')[0].text.replace('…続きを読む', "")
         epi_data = soup.select('.widget-toc-items.test-toc-items li')
-        if book_data:
-            # episode data
-            book_data.update({
+        
+        # episode data
+        book_data.update({
+            'last_time': last_time.text,
+            'full_desc': full_desc,
+            'number_of_episode': number_of_episode.text, 
+            'publish_state': 0 if publish_state.text == '完結済' else 1
+        })
+        BookCURDController().update_book(book_data)
+        
+        cls.update_epilist(epi_data, book_id)
+
+        # 进表操作
+    @classmethod
+    def refresh_episode(cls, book_id):
+        print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        soup = cls.get_soup("https://kakuyomu.jp/works/{}".format(book_id))
+        # state number
+        [publish_state, number_of_episode] = soup.select('.widget-toc-workStatus span')
+        # last refresh time
+        last_time = soup.select('.widget-toc-date time span')[0]
+        # full_desc
+        full_desc = soup.select('#introduction')[0].text.replace('…続きを読む', "")
+        epi_data = soup.select('.widget-toc-items.test-toc-items li')
+        book_obj = {}
+        # pdb.set_trace()
+        exists_flag = Book.objects.filter(book_id=book_id).exists()
+        if exists_flag:
+            book_obj = Book.objects.get(book_id=book_id)
+        
+        if book_obj and book_obj.last_time != last_time.text:
+            BookCURDController().update_book({
+                'book_id': book_id, 
+                'author_id': book_obj.author_id,
                 'last_time': last_time.text,
                 'full_desc': full_desc,
                 'number_of_episode': number_of_episode.text, 
                 'publish_state': 0 if publish_state.text == '完結済' else 1
             })
-            BookCURDController().update_book(book_data)
-
-        cls.update_epilist(epi_data, book_id)
-        
-        return { 'msg': 'success' }
+            cls.update_epilist(epi_data, book_id)
+            return { 'msg': 'upload success' }
+        else:
+            return {'msg': 'is most fresh data'}
 
     @classmethod
     def update_epilist(self, episode_list, book_id):
@@ -84,6 +116,7 @@ class UpdateService(BaseService):
             if 'widget-toc-chapter' in item.attrs['class']:
                 current_maintitle = item.find('span').text
             elif current_maintitle is not None:
+                # pdb.set_trace()
                 episode_id = item.find('a')['href'].split('/')[-1]
                 # 这里插入比较的逻辑
                 episode_obj = {}
@@ -91,10 +124,11 @@ class UpdateService(BaseService):
                 if exists_flag:
                     episode_obj = Episode.objects.get(episode_id=episode_id)
                 episode_data = {}
-                if episode_obj and episode_obj.refresh_time != item.find('time').text:
-                    episode_obj.isupdated = 1,
-                    episode_obj.refresh_time = item.find('time').text,
-                    episode_obj.save()
+                if episode_obj:
+                    if episode_obj.refresh_time != item.find('time').text:
+                        episode_obj.isupdated = 1,
+                        episode_obj.refresh_time = item.find('time').text,
+                        episode_obj.save()
                 else:
                     episode_data = {
                         'episode_id': episode_id,
@@ -105,7 +139,7 @@ class UpdateService(BaseService):
                         'isupdated': 0,
                         'server_address': '',
                     }
-                EpisodeCURDController().update_episode(episode_data)
+                    EpisodeCURDController().update_episode(episode_data)
                 
     
 # /works/16816700429263197780/episodes/16817330656452046849

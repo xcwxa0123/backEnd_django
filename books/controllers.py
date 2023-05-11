@@ -44,7 +44,7 @@ class UpdateController:
         if not book_id:
             return { 'data': {}, 'code': 500, 'msg': '主键id有误' }
         try:
-            resData = UpdateService.update_detail(book_id, {})
+            resData = UpdateService.refresh_episode(book_id)
         except Exception as e:
             print(f'e================>{e}')
             return { 'data': {}, 'code': 500, 'msg': str(e) }
