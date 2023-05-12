@@ -6,7 +6,7 @@ from django_filters import rest_framework as filters
 from rest_framework.decorators import action
 
 from django.http import HttpResponse, JsonResponse
-from .controllers import EpisodeController, UpdateController
+from .controllers import EpisodeController, UpdateController, SearchController
 from .tools.page_nation import BookPageNation
 from .tools.episode_filter import EpisodeListFilter
 import urllib.parse
@@ -24,6 +24,13 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retriev
     def update_hotlist(self, request, *args, **kwargs):
         pageIndex = request.query_params.get('pageIndex', None)
         res = UpdateController().update_hotlist(pageIndex)
+        return HttpResponse(json.dumps(res, ensure_ascii=False))
+    
+    @action(detail=False, methods=['GET'])
+    def get_searched_list(self, request, *args, **kwargs):
+        searchName = request.query_params.get('searchName', None)
+        pageIndex = request.query_params.get('searchName', None)
+        res = SearchController().get_searched_list(searchName, pageIndex)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
     
 

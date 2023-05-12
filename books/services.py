@@ -217,3 +217,38 @@ class EpisodeService(BaseService):
             file_content = ''
 
         return { 'file_content': file_content, 'file_name': file_name}
+    
+class SearchService(BaseService):
+    @classmethod
+    def get_searched_list(cls, search_name, page_index):
+        print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        soup = cls.get_soup("https://kakuyomu.jp/search?q={0}&page={1}".format(search_name, page_index))
+        moudle_list = soup.find_all('div', class_='Gap_size-2s__r5pBU Gap_direction-y__ELoPO')
+        # print(moudle_list)
+        for index, moudle in enumerate(moudle_list):
+            book_moudle = moudle.select('.Gap_size-4s__P2EWr.Gap_direction-x__3b2TF a')
+            if not len(book_moudle):
+                continue
+            book_title = book_moudle[0]['title']
+            book_href = book_moudle[0]['href']
+            author_moudle = moudle.select('.partialGiftWidgetActivityName.ActivityName_inlineBlock__TBG1H a')[0]
+            author_name = author_moudle.text
+            author_href = author_moudle['href']
+            book_desc = moudle.select('.partialGiftWidgetWeakText span')[0].text
+            # print(book_moudle)
+            author_id = author_href.split('/')[-1]
+            book_id = book_href.split('/')[-1]
+            hot_rank = 999
+            author_data = { 'author_id': author_id, 'author_name': author_name }
+            print(f'author_data============>{author_data}')
+            book_data = { 'book_id': book_id, 'author_id': author_id, 'book_title': book_title, 'book_desc': book_desc, 'hot_rank': hot_rank }
+            print(f'book_data============>{book_data}')
+            print(index)
+        # storage_path = os.getenv('STORAGE_PATH')
+        # return ''
+        
+    @classmethod
+    def get_searched_book(cls, book_data):
+        book_id = book_data.get('book_id')
+        UpdateService.update_detail(book_id, book_data)
+        Episode.objects.get(book=book_id)

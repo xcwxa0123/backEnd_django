@@ -1,4 +1,4 @@
-from .services import UpdateService, EpisodeService
+from .services import UpdateService, EpisodeService, SearchService
 # episode相关接口控制器
 class EpisodeController:
     def getEpisodeText(self, book_id, episode_id):
@@ -50,4 +50,20 @@ class UpdateController:
             return { 'data': {}, 'code': 500, 'msg': str(e) }
         else:
             return { 'data': resData, 'code': 200, 'msg': 'success' }
+        
+class SearchController:
+    def get_searched_list(self, search_name, page_index):
+        resData = {}
+        if not page_index:
+            page_index = 0
+        if not search_name:
+            search_name = ''
+        try:
+            resData = SearchService.get_searched_list(search_name, page_index)
+        except Exception as e:
+            print(f'e================>{e}')
+            return { 'data': {}, 'code': 500, 'msg': str(e) }
+        else:
+            return { 'data': resData, 'code': 200, 'msg': 'success' }
+
         
