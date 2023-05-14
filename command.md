@@ -28,3 +28,6 @@ sudo nano /etc/profile
 export MY_VAR="my value"
 source /etc/profile
 python -c 'import os; print(os.environ.get("BOOKS_APP_ENVIRONMENT"))'
+
+python manage.py makemigrations
+python manage.py migrate
