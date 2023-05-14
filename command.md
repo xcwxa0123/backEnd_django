@@ -1,8 +1,8 @@
 pip freeze > requirements.txt
 ps -ef | grep gunicorn
 gunicorn --bind=0.0.0.0:8000 backEnd_django.wsgi &
-source djangoEnv/bin/activate
-deactivate
+虚拟环境 source djangoEnv/bin/activate
+退出虚拟环境 deactivate
 
 
 sudo systemctl start nginx
