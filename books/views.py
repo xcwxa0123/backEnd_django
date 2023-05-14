@@ -22,15 +22,22 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retriev
     # update
     @action(detail=False, methods=['GET'])
     def update_hotlist(self, request, *args, **kwargs):
-        pageIndex = request.query_params.get('pageIndex', None)
-        res = UpdateController().update_hotlist(pageIndex)
+        page_index = request.query_params.get('pageIndex', None)
+        res = UpdateController().update_hotlist(page_index)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
     
     @action(detail=False, methods=['GET'])
     def get_searched_list(self, request, *args, **kwargs):
-        searchName = request.query_params.get('searchName', None)
-        pageIndex = request.query_params.get('searchName', None)
-        res = SearchController().get_searched_list(searchName, pageIndex)
+        search_name = request.query_params.get('searchName', None)
+        page_index = request.query_params.get('pageIndex', None)
+        res = SearchController().get_searched_list(search_name, page_index)
+        return HttpResponse(json.dumps(res, ensure_ascii=False))
+        # return JsonResponse(res, json_dumps_params={'ensure_ascii': False})
+    
+    @action(detail=False, methods=['POST'])
+    def get_searched_book(self, request, *args, **kwargs):
+        book_data = request.data.get('bookData', None)
+        res = SearchController().get_searched_book(book_data)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
     
 
@@ -67,7 +74,7 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         res = EpisodeController().getEpisodeText(book_id, episode_id)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
         
-    # @action(detail=False, methods=['POST'])
+    @action(detail=False, methods=['POST'])
     def update_episodelist(self, request, *args, **kwargs):
         book_id = request.data.get('bookId', None)
         res = UpdateController().update_episodelist(book_id)

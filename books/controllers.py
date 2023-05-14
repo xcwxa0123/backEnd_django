@@ -64,6 +64,18 @@ class SearchController:
             print(f'e================>{e}')
             return { 'data': {}, 'code': 500, 'msg': str(e) }
         else:
+            return { 'data': resData, 'code': 200, 'msg': 'search success' }
+        
+    def get_searched_book(self, book_data):
+        resData = {}
+        if not book_data:
+            return { 'data': {}, 'code': 500, 'msg': '主键id有误' }
+        try:
+            resData = SearchService.get_searched_book(book_data)
+        except Exception as e:
+            print(f'e================>{e}')
+            return { 'data': {}, 'code': 500, 'msg': str(e) }
+        else:
             return { 'data': resData, 'code': 200, 'msg': 'success' }
 
         

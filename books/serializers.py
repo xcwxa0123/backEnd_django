@@ -11,9 +11,10 @@ class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
         fields = '__all__'
+        # exclude = ['hot_rank']
 
 class EpisodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Episode
-        fields = '__all__'
-
+        # fields = '__all__'
+        exclude = ['isupdated', 'server_address']

@@ -57,6 +57,7 @@ class BookCURDController:
             return None
         
     def update_book(self, book_data):
+        # pdb.set_trace()
         copy_data = copy.deepcopy(book_data)
         book_id = copy_data.get('book_id')
         book_obj = self.get_book(book_id)
