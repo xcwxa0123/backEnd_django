@@ -22,9 +22,16 @@ sudo systemctl enable nginx
 
 sudo systemctl restart gunicorn.service
 
-pm2 start ./index.mjs --name=nuxt_app
-pm2 start ./index.mjs --name=nuxt_app --env production
-pm2 start .output/server/index.mjs --name yuriservices --env production
+<!-- pm2 start ./index.mjs --name=nuxt_app
+pm2 start ./index.mjs --name=nuxt_app --env production -->
+pm2 start .output/server/index.mjs --name yuriservices2 --env production
+
+pm2 start yuriservices.config.js --name yuriservices --env production
+
+pm2 start chatmiddle/server/index.mjs --name chatmiddle --env production PORT=3021
+
+
+sudo netstat -tupln
 
 pm2 stop yuriservices
 pm2 status
