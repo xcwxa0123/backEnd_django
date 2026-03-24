@@ -44,6 +44,7 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retriev
 class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
     queryset = Episode.objects.all()
     serializer_class = EpisodeSerializer
+    # 前端条件查询
     filter_backends = [filters.DjangoFilterBackend]
     filterset_class = EpisodeListFilter
     # pagination_class = BookPageNation

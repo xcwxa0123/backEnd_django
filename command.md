@@ -48,7 +48,4 @@ python manage.py migrate
 
 python manage.py createsuperuser
 
-xcwxa0123
-XCWXa0123@#！
-
  sudo nano /etc/profile
