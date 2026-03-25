@@ -1,3 +1,6 @@
+import random
+import json
+
 import requests
 from bs4 import BeautifulSoup
 from .tools import extract_text
@@ -5,16 +8,33 @@ from .curd_controllers import AuthorCURDController, BookCURDController, EpisodeC
 from books.models import Book, Episode
 from books.serializers import BookSerializer, EpisodeSerializer
 import time, os, copy
-import pdb
 from django.db.models import Q
 
 class BaseService:
+    # @classmethod
+    # def get_soup(self, url):
+    #     res = requests.get(url)
+    #     con = res.content.decode('utf-8')
+    #     soup = BeautifulSoup(con, 'html.parser')
+    #     return soup
+
     @classmethod
-    def get_soup(self, url):
-        res = requests.get(url)
-        con = res.content.decode('utf-8')
-        soup = BeautifulSoup(con, 'html.parser')
-        return soup
+    def get_soup(cls, url):
+        session = requests.Session()
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+            "Accept-Language": "ja-JP,ja;q=0.9,en;q=0.8",
+            "Referer": "https://kakuyomu.jp/",
+        }
+
+        # 先访问首页拿 cookie
+        session.get("https://kakuyomu.jp/", headers=headers)
+        time.sleep(random.uniform(1, 3))
+
+        res = session.get(url, headers=headers)
+
+        return BeautifulSoup(res.text, "html.parser")
     
 
 
@@ -25,34 +45,61 @@ class UpdateService(BaseService):
     def update_hotlist(cls, page_index):
         print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         soup = cls.get_soup("https://kakuyomu.jp/tags/%E7%99%BE%E5%90%88?page={}".format(page_index))
+        # soup = cls.get_soup("https://kakuyomu.jp/")
         # 大模块
         moudle_list = soup.find_all('div', class_='widget-work float-parent')
+        print(f'看看长度============>{len(moudle_list)}')
         for index, moudle in enumerate(moudle_list):
             # left_moudle = len(moudle.select('.float-left')) ? moudle.select('.float-left')[0] : None
             left_moudle = None if not len(moudle.select('.float-left')) else moudle.select('.float-left')[0]
             # print(left_moudle)
             if left_moudle:
                 book_title = left_moudle.find('a', class_='widget-workCard-titleLabel bookWalker-work-title').text
+
                 author_name = left_moudle.find('a', class_='widget-workCard-authorLabel').text
+
                 author_href = left_moudle.find('a', class_='widget-workCard-authorLabel')['href']
-                book_desc = left_moudle.select('.widget-workCard-introduction a')[0].text
+                
+                book_desc = left_moudle.select('.widget-workCard-introduction a')[0].text if left_moudle.select('.widget-workCard-introduction a') else '無'
+
                 book_href = left_moudle.find('a', class_='widget-workCard-titleLabel bookWalker-work-title')['href']
+
                 author_id = author_href.split('/')[-1]
+                
                 book_id = book_href.split('/')[-1]
+
                 hot_rank = index + 1
+
+                last_time = left_moudle.select('.widget-workCard-dateUpdated')[0].text
+                
+                publish_state = left_moudle.select('.widget-workCard-statusLabel')[0].text
+                number_of_episode = left_moudle.select('.widget-workCard-episodeCount')[0].text
+
                 author_data = { 'author_id': author_id, 'author_name': author_name }
                 print(f'author_data============>{author_data}')
-                book_data = { 'book_id': book_id, 'author_id': author_id, 'book_title': book_title, 'book_desc': book_desc, 'hot_rank': hot_rank }
+                book_data = {
+                    'book_id': book_id, 
+                    'author_id': author_id, 
+                    'book_title': book_title, 
+                    'book_desc': book_desc, 
+                    'hot_rank': hot_rank,
+                    'last_time': last_time,
+                    'full_desc': book_desc,
+                    'number_of_episode': number_of_episode, 
+                    'publish_state': 0 if publish_state == '完結済' else 1
+                }
                 print(f'book_data============>{book_data}')
                 try:
+                    
                     # 避免短期内大量访问
-                    time.sleep(5)
+                    # time.sleep(5)
                     # 进表前先把之前的rank清空避免重复
                     target_list = Book.objects.filter(Q(hot_rank__gt=0) & Q(hot_rank__lt=51))
                     target_list.update(hot_rank=999)
                     AuthorCURDController().update_author(author_data)
-                    cls.update_detail(book_id, book_data)
-                    # BookCURDController().create_book(book_data)
+                    # 先不爬章节，页面结构变了，得从__NEXT_DATA__里面爬
+                    # cls.update_detail(book_data)
+                    BookCURDController().create_book(book_data)
                 except Exception as e:
                     print(f'ERROR================>{e}')
                     return f'update faild!{e}'
@@ -60,27 +107,72 @@ class UpdateService(BaseService):
     
     # 进表操作
     @classmethod
-    def update_detail(cls, book_id, book_data):
-        print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        soup = cls.get_soup("https://kakuyomu.jp/works/{}".format(book_id))
+    def update_detail(cls, book_data):
+        print(f'进来了,看看data========>{book_data}')
+        # print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        soup = cls.get_soup("https://kakuyomu.jp/works/{}".format(book_data['book_id']))
+
+        
+        data = soup.find("script", id="__NEXT_DATA__").string
+        json_data = json.loads(data)
+
+        print(f'json_data=============>{json_data}')
+        
+        # print('看看soup============>', soup)
         # state number
-        [publish_state, number_of_episode] = soup.select('.widget-toc-workStatus span')
+        # [publish_state, number_of_episode] = soup.select('.widget-workCard-status span')
+        # publish_state = soup.select('.Meta_metaItem__8eZTP')
+        # dataPack = soup.find_all('div', class_='Meta_metaItem__8eZTP')
+        # print(f'看看publish_state============>{dataPack[1]}')
+        # print(f'看看number_of_episode============>{number_of_episode}')
         # last refresh time
-        last_time = soup.select('.widget-toc-date time span')[0]
+        # last_time = soup.select('.widget-toc-date time span')[0]
+        # print(f'看看last_time============>{last_time}')
         # full_desc
-        full_desc = soup.select('#introduction')[0].text.replace('…続きを読む', "")
-        epi_data = soup.select('.widget-toc-items.test-toc-items li')
-        
+        # full_desc = soup.select('#introduction')[0].text.replace('…続きを読む', "")
+        # print(f'看看full_desc============>{full_desc}')
+
+
+        # epi_data = soup.find_all('div', class_='NewBox_box__45ont NewBox_padding-px-m__OQCYI')
+
+        # package_data = {}
+        # for index, epi in enumerate(epi_data):
+        #     main_title = epi.find('h3', class_='Heading_heading__lQ85n Heading_left__RVp4h Heading_size-1s___G7AX').text
+        #     chaptepi = epi.find_all('a', class_='WorkTocSection_link__ocg9K')
+        #     for dataindex, data in enumerate(chaptepi):
+        #         print(f'看看index==============>', dataindex)
+        #         try:
+        #             package_data = {
+        #                 'episode_id': data['href'].split('/')[-1],
+        #                 'book_id': book_data['book_id'],
+        #                 'main_title': main_title,
+        #                 'sub_title': data.select_one("div.WorkTocSection_title__H2007").get_text(strip=True),
+        #                 'refresh_time': data.find('time').text,
+        #                 'isupdated': 0,
+        #                 'server_address': '',
+        #             }
+        #             print(f'看看episode_data==============>', package_data)
+        #         except Exception as e:
+        #             print(f'ERROR================>{e}')
+        #             return f'update faild!{e}'
+
+            
+        #     print(f'看看index==============>', index)
+
+
+
+        # print(f'看看epi_data============>{epi_data}')
+
         # episode data
-        book_data.update({
-            'last_time': last_time.text,
-            'full_desc': full_desc,
-            'number_of_episode': number_of_episode.text, 
-            'publish_state': 0 if publish_state.text == '完結済' else 1
-        })
-        BookCURDController().update_book(book_data)
+        # book_data.update({
+        #     'last_time': last_time.text,
+        #     'full_desc': full_desc,
+        #     'number_of_episode': number_of_episode.text, 
+        #     'publish_state': 0 if publish_state.text == '完結済' else 1
+        # })
+        # BookCURDController().update_book(book_data)
         
-        cls.update_epilist(epi_data, book_id)
+        # cls.update_epilist(epi_data, book_id)
 
     # 进表操作
     @classmethod
