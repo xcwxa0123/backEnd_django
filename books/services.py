@@ -9,6 +9,7 @@ from books.models import Book, Episode
 from books.serializers import BookSerializer, EpisodeSerializer
 import time, os, copy
 from django.db.models import Q
+from datetime import datetime
 
 class BaseService:
     # @classmethod
@@ -92,159 +93,195 @@ class UpdateService(BaseService):
                 try:
                     
                     # 避免短期内大量访问
-                    # time.sleep(5)
+                    time.sleep(random.uniform(5, 10))
                     # 进表前先把之前的rank清空避免重复
                     target_list = Book.objects.filter(Q(hot_rank__gt=0) & Q(hot_rank__lt=51))
                     target_list.update(hot_rank=999)
+
                     AuthorCURDController().update_author(author_data)
-                    # 先不爬章节，页面结构变了，得从__NEXT_DATA__里面爬
-                    # cls.update_detail(book_data)
-                    BookCURDController().create_book(book_data)
+
+                    # 先不爬章节，页面结构变了，得从__NEXT_DATA__里面爬，为了避免防爬，在点进页面之后再爬
+                    # cls.update_detail(book_data[book_id])
+
+                    # return;
+                    BookCURDController().update_book(book_data)
+                    # return;
+
                 except Exception as e:
                     print(f'ERROR================>{e}')
                     return f'update faild!{e}'
         return 'update success!'
     
-    # 进表操作
+    # 进表操作 根据book_id获取章节列表并存表且更新，记得先查询一下章节表里有没有这个book的章节，避免重复爬取
+    # 哎，不对，设计层面就有问题了，应该再book上添加是否有更新的标记，每次只用爬book那一层就行，再判断。
+    # 时间不够了，先把这个方法的接口开出来，每次进页面就查一下，以后再说
+    # 改为传id，自己查，能进来的肯定都有id且有对应book
     @classmethod
-    def update_detail(cls, book_data):
-        print(f'进来了,看看data========>{book_data}')
+    def update_detail(cls, book_id):
+        # print(f'进来了,看看data========>{book_data}')
         # print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        soup = cls.get_soup("https://kakuyomu.jp/works/{}".format(book_data['book_id']))
+        # 用book_id查到该book下episode是否存在，如果存在就直接return
+        is_episode_exists = Episode.objects.filter(book_id=book_id).exists()
+        if is_episode_exists:
+            print(f'{book_id}============>章节数据已存在，无需更新')
+            return
 
+        book_obj = Book.objects.get(book_id=book_id)
+        soup = cls.get_soup("https://kakuyomu.jp/works/{}".format(book_id))
+        # soup = cls.get_soup("https://kakuyomu.jp/works/{}".format('16818093079992812465'))
+        print(f'{book_obj.book_title}============>开始更新')
         
         data = soup.find("script", id="__NEXT_DATA__").string
         json_data = json.loads(data)
+        page_data = json_data.get('props', {}).get('pageProps', {}).get('__APOLLO_STATE__', {})
+        # print(f'page_data============>{page_data}')
+        full_desc = page_data.get('Work:{}'.format(book_id), {}).get('introduction', '')
+        # full_desc = page_data.get('Work:{}'.format('16818093079992812465'), {}).get('introduction', '')
+        print(f'full_desc============>{full_desc}')
+        for key, value in page_data.items():
+            if key.startswith('TableOfContentsChapter:'):
+                print(f'进循环了============>{value}')
+                search_chapter_key = value.get('chapter').get('__ref') if value.get('chapter') else 999
+                print(f'chapter_key============>{search_chapter_key}')
+                main_title = page_data.get(search_chapter_key).get('title') if search_chapter_key != 999 else 'blank'
+                print(f'main_title============>{main_title}')
+                for episode_v in value.get('episodeUnions', []):
+                    data_key = episode_v.get('__ref')
+                    print(f'data_key============>{data_key}')
+                    time_str = page_data.get(data_key).get('publishedAt')
+                    print(f'time_str============>{time_str}')
+                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+                    # print(f'dt============>{dt}')
+                    # print(f'refresh_time============>{f"{dt.year}年{dt.month}月{dt.day}日 {dt.hour:02d}:{dt.minute:02d}"}')
+                    episode_item = {
+                        'episode_id': page_data.get(data_key).get('id'),
+                        'book_id': book_id,
+                        # 'book_id': '16818093079992812465',
+                        'main_title': main_title,
+                        'chapter_key': value.get('id') if value.get('id') else page_data.get(data_key).get('id'),
+                        'sub_title': page_data.get(data_key).get('title'),
+                        'refresh_time': f"{dt.year}年{dt.month}月{dt.day}日 {dt.hour:02d}:{dt.minute:02d}",
+                        'isupdated': 0,
+                        'server_address': ''
+                    }
+                    cls.update_epilist(episode_item, book_id)
+                    # cls.update_epilist(episode_item, '16818093079992812465')
 
-        print(f'json_data=============>{json_data}')
-        
-        # print('看看soup============>', soup)
-        # state number
-        # [publish_state, number_of_episode] = soup.select('.widget-workCard-status span')
-        # publish_state = soup.select('.Meta_metaItem__8eZTP')
-        # dataPack = soup.find_all('div', class_='Meta_metaItem__8eZTP')
-        # print(f'看看publish_state============>{dataPack[1]}')
-        # print(f'看看number_of_episode============>{number_of_episode}')
-        # last refresh time
-        # last_time = soup.select('.widget-toc-date time span')[0]
-        # print(f'看看last_time============>{last_time}')
-        # full_desc
-        # full_desc = soup.select('#introduction')[0].text.replace('…続きを読む', "")
-        # print(f'看看full_desc============>{full_desc}')
+        print(f'{book_obj.book_title}============>的章节数据更新完了')
 
-
-        # epi_data = soup.find_all('div', class_='NewBox_box__45ont NewBox_padding-px-m__OQCYI')
-
-        # package_data = {}
-        # for index, epi in enumerate(epi_data):
-        #     main_title = epi.find('h3', class_='Heading_heading__lQ85n Heading_left__RVp4h Heading_size-1s___G7AX').text
-        #     chaptepi = epi.find_all('a', class_='WorkTocSection_link__ocg9K')
-        #     for dataindex, data in enumerate(chaptepi):
-        #         print(f'看看index==============>', dataindex)
-        #         try:
-        #             package_data = {
-        #                 'episode_id': data['href'].split('/')[-1],
-        #                 'book_id': book_data['book_id'],
-        #                 'main_title': main_title,
-        #                 'sub_title': data.select_one("div.WorkTocSection_title__H2007").get_text(strip=True),
-        #                 'refresh_time': data.find('time').text,
-        #                 'isupdated': 0,
-        #                 'server_address': '',
-        #             }
-        #             print(f'看看episode_data==============>', package_data)
-        #         except Exception as e:
-        #             print(f'ERROR================>{e}')
-        #             return f'update faild!{e}'
-
-            
-        #     print(f'看看index==============>', index)
-
-
-
-        # print(f'看看epi_data============>{epi_data}')
-
+        book_obj.full_desc = full_desc
+        book_obj.save()
         # episode data
-        # book_data.update({
+        # book_obj.update({
         #     'last_time': last_time.text,
-        #     'full_desc': full_desc,
+        #     'full_desc': full_desc
         #     'number_of_episode': number_of_episode.text, 
         #     'publish_state': 0 if publish_state.text == '完結済' else 1
         # })
         # BookCURDController().update_book(book_data)
         
-        # cls.update_epilist(epi_data, book_id)
 
-    # 进表操作
+    # 进表操作 逻辑有问题 需要重更新写，功能应该是点击按钮后手动刷新
     @classmethod
     def refresh_episode(cls, book_id):
-        print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        soup = cls.get_soup("https://kakuyomu.jp/works/{}".format(book_id))
-        # state number
-        [publish_state, number_of_episode] = soup.select('.widget-toc-workStatus span')
-        # last refresh time
-        last_time = soup.select('.widget-toc-date time span')[0]
-        # full_desc
-        full_desc = soup.select('#introduction')[0].text.replace('…続きを読む', "")
-        epi_data = soup.select('.widget-toc-items.test-toc-items li')
-        book_obj = {}
-        # pdb.set_trace()
-        exists_flag = Book.objects.filter(book_id=book_id).exists()
-        if exists_flag:
-            book_obj = Book.objects.get(book_id=book_id)
+        return
+        # print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        # soup = cls.get_soup("https://kakuyomu.jp/works/{}".format(book_id))
+        # # state number
+        # [publish_state, number_of_episode] = soup.select('.widget-toc-workStatus span')
+        # # last refresh time
+        # last_time = soup.select('.widget-toc-date time span')[0]
+        # # full_desc
+        # full_desc = soup.select('#introduction')[0].text.replace('…続きを読む', "")
+        # epi_data = soup.select('.widget-toc-items.test-toc-items li')
+        # book_obj = {}
+        # # pdb.set_trace()
+        # exists_flag = Book.objects.filter(book_id=book_id).exists()
+        # if exists_flag:
+        #     book_obj = Book.objects.get(book_id=book_id)
         
-        if book_obj and book_obj.last_time != last_time.text:
-            BookCURDController().update_book({
-                'book_id': book_id, 
-                'author_id': book_obj.author_id,
-                'last_time': last_time.text,
-                'full_desc': full_desc,
-                'number_of_episode': number_of_episode.text, 
-                'publish_state': 0 if publish_state.text == '完結済' else 1
-            })
-            cls.update_epilist(epi_data, book_id)
-            return { 'msg': 'upload success' }
-        else:
-            return {'msg': 'is most fresh data'}
+        # if book_obj and book_obj.last_time != last_time.text:
+        #     BookCURDController().update_book({
+        #         'book_id': book_id, 
+        #         'author_id': book_obj.author_id,
+        #         'last_time': last_time.text,
+        #         'full_desc': full_desc,
+        #         'number_of_episode': number_of_episode.text, 
+        #         'publish_state': 0 if publish_state.text == '完結済' else 1
+        #     })
+        #     cls.update_epilist(epi_data, book_id)
+        #     return { 'msg': 'upload success' }
+        # else:
+        #     return {'msg': 'is most fresh data'}
 
+    #重写更新章节列表的逻辑，之前是根据页面结构爬的，现在改成根据__NEXT_DATA__爬了，之前的逻辑就注释掉了
     @classmethod
-    def update_epilist(self, episode_list, book_id):
-        current_maintitle = ' '
-        for index, item in enumerate(episode_list):
-            #   if 是章节
-            #       cm = 章节名
-            #   else 
-            #       if index = 0
-            #           cm = ' '
-            #       ~~~逻辑处理
-            if 'widget-toc-chapter' in item.attrs['class']:
-                current_maintitle = item.find('span').text
-            else:
-                if index == 0:
-                    current_maintitle = ' '
-                # pdb.set_trace()
-                episode_id = item.find('a')['href'].split('/')[-1]
-                # 这里插入比较的逻辑
-                episode_obj = {}
-                exists_flag = Episode.objects.filter(episode_id=episode_id).exists()
-                if exists_flag:
-                    episode_obj = Episode.objects.get(episode_id=episode_id)
-                episode_data = {}
-                if episode_obj:
-                    if episode_obj.refresh_time != item.find('time').text:
-                        episode_obj.isupdated = 1,
-                        episode_obj.refresh_time = item.find('time').text,
-                        episode_obj.save()
-                else:
-                    episode_data = {
-                        'episode_id': episode_id,
-                        'book_id': book_id,
-                        'main_title': current_maintitle,
-                        'sub_title': item.find('span').text,
-                        'refresh_time': item.find('time').text,
-                        'isupdated': 0,
-                        'server_address': '',
-                    }
-                    EpisodeCURDController().update_episode(episode_data)
+    def update_epilist(cls, episode_item, book_id):
+        episode_obj = {}
+        exists_flag = Episode.objects.filter(episode_id=episode_item.get('episode_id')).exists()
+        if exists_flag:
+            episode_obj = Episode.objects.get(episode_id=episode_item.get('episode_id'))
+        episode_data = {}
+        if episode_obj:
+            if episode_obj.refresh_time != episode_item.get('refresh_time'):
+                episode_obj.isupdated = 1,
+                episode_obj.refresh_time = episode_item.get('refresh_time'),
+                episode_obj.save()
+        else:
+            episode_data = {
+                'episode_id': episode_item.get('episode_id'),
+                'book_id': book_id,
+                'main_title': episode_item.get('main_title'),
+                'chapter_key': episode_item.get('chapter_key'),
+                'sub_title': episode_item.get('sub_title'),
+                'refresh_time': episode_item.get('refresh_time'),
+                'isupdated': 0,
+                'server_address': '',
+            }
+            EpisodeCURDController().update_episode(episode_data)
+
+
+
+    # @classmethod
+    # def update_epilist(self, episode_list, book_id):
+    #     current_maintitle = ' '
+    #     for index, item in enumerate(episode_list):
+    #         #   if 是章节
+    #         #       cm = 章节名
+    #         #   else 
+    #         #       if index = 0
+    #         #           cm = ' '
+    #         #       ~~~逻辑处理
+    #         if 'widget-toc-chapter' in item.attrs['class']:
+    #             current_maintitle = item.find('span').text
+    #         else:
+    #             if index == 0:
+    #                 current_maintitle = ' '
+    #             # pdb.set_trace()
+    #             episode_id = item.find('a')['href'].split('/')[-1]
+    #             # 这里插入比较的逻辑
+    #             episode_obj = {}
+    #             exists_flag = Episode.objects.filter(episode_id=episode_id).exists()
+    #             if exists_flag:
+    #                 episode_obj = Episode.objects.get(episode_id=episode_id)
+    #             episode_data = {}
+    #             if episode_obj:
+    #                 if episode_obj.refresh_time != item.find('time').text:
+    #                     episode_obj.isupdated = 1,
+    #                     episode_obj.refresh_time = item.find('time').text,
+    #                     episode_obj.save()
+    #             else:
+    #                 episode_data = {
+    #                     'episode_id': episode_id,
+    #                     'book_id': book_id,
+    #                     'main_title': current_maintitle,
+    #                     'chapter_key': item.chapter_key, # 这里要重写
+    #                     'sub_title': item.find('span').text,
+    #                     'refresh_time': item.find('time').text,
+    #                     'isupdated': 0,
+    #                     'server_address': '',
+    #                 }
+    #                 EpisodeCURDController().update_episode(episode_data)
                 
     
 # /works/16816700429263197780/episodes/16817330656452046849

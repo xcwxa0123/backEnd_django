@@ -84,6 +84,7 @@ class EpisodeCURDController:
             # book_id=episode_data['book_id'],
             book=book,
             main_title=episode_data['main_title'],
+            chapter_key=episode_data['chapter_key'],
             sub_title=episode_data['sub_title'],
             refresh_time=episode_data['refresh_time'],
             isupdated=episode_data['isupdated'],

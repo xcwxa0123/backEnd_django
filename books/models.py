@@ -33,6 +33,8 @@ class Episode(models.Model):
     book = models.ForeignKey(Book, to_field='book_id', on_delete=models.CASCADE, related_name='episodes')
     # 大章节标题
     main_title = models.TextField(blank=False, null=False)
+    # 大章节key
+    chapter_key = models.CharField(max_length=100, blank=False, null=False)
     # 小章节标题
     sub_title = models.TextField(blank=False, null=False)
     # 章节上一次更新时间

@@ -39,17 +39,31 @@ class UpdateController:
         else:
             return { 'data': resData, 'code': 200, 'msg': 'success' }
         
+    
+    # 前逻辑是点击刷新，现在改为进去就刷新，并且更改service层调用
+    # def update_episodelist(self, book_id):
+    #     resData = {}
+    #     if not book_id:
+    #         return { 'data': {}, 'code': 500, 'msg': '主键id有误' }
+    #     try:
+    #         resData = UpdateService.refresh_episode(book_id)
+    #     except Exception as e:
+    #         print(f'e================>{e}')
+    #         return { 'data': {}, 'code': 500, 'msg': str(e) }
+    #     else:
+    #         return { 'data': resData, 'code': 200, 'msg': 'success' }
     def update_episodelist(self, book_id):
         resData = {}
         if not book_id:
             return { 'data': {}, 'code': 500, 'msg': '主键id有误' }
         try:
-            resData = UpdateService.refresh_episode(book_id)
+            UpdateService.update_detail(book_id)
         except Exception as e:
             print(f'e================>{e}')
             return { 'data': {}, 'code': 500, 'msg': str(e) }
         else:
-            return { 'data': resData, 'code': 200, 'msg': 'success' }
+            return { 'data': '章节列表更新成功', 'code': 200, 'msg': 'success' }
+
         
 class SearchController:
     def get_searched_list(self, search_name, page_index):
