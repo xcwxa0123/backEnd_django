@@ -10,6 +10,9 @@ from .controllers import EpisodeController, UpdateController, SearchController
 from .tools.page_nation import BookPageNation
 from .tools.episode_filter import EpisodeListFilter
 import urllib.parse
+from collections import defaultdict
+from rest_framework.response import Response
+import copy
 
 class AuthorViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     queryset = Author.objects.all()
@@ -48,7 +51,30 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
     filter_backends = [filters.DjangoFilterBackend]
     filterset_class = EpisodeListFilter
     # pagination_class = BookPageNation
-        
+
+    def list(self, request, *args, **kwargs):
+        # ✅ 先走过滤逻辑（很重要，不然你 filter 白写了）
+        queryset = self.filter_queryset(self.get_queryset())
+
+        # 如果你用 serializer（推荐）
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        # copy_data = copy.deepcopy(data)
+
+        # ✅ 分组
+        grouped = defaultdict(list)
+        for index, item in enumerate(data):
+            key = item['chapter_key']
+            item['global_index'] = index
+            grouped[key].append(item)
+
+        result = [
+            {"chapter_key": k, "list": v}
+            for k, v in grouped.items()
+        ]
+
+        return Response(result)
+    
     # episode/file
     @action(detail=False, methods=['GET'])
     def get_episode_file(self, request, *args, **kwargs):
