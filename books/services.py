@@ -299,41 +299,25 @@ class EpisodeService(BaseService):
         file_addr = extract_text.set_file(text=text_content, file_addr='{0}/{1}.txt'.format(dir_addr, episode_id))
         return file_addr
         
+    # 纯返回地址，给前端轮询用
     @classmethod
-    def get_episode_file(cls, book_id, episode_id):
-        # 先根据服务器地址查文件，如果没有再创建文件(并缓存至缓存地址改名)然后抛出服务器地址
-        # 缓存地址一天一清理(打包再用)
+    def get_episode_addr(cls, episode_id):
         episode_obj = Episode.objects.get(episode_id=episode_id)
         file_addr = episode_obj.server_address
-        file_name = '{0}-{1}'.format(episode_obj.main_title, episode_obj.sub_title)
         print(f'file_addr====>{file_addr}')
-        if not file_addr or episode_obj.isupdated == 1:
-            # 存文件
-            file_addr = cls.set_file(book_id, episode_id)
-            if file_addr:
-                episode_obj.server_address = file_addr
-                episode_obj.save()
-                print(f'episode_obj====>{episode_obj}')
-            else:
-                print(f'episode_obj====>{episode_obj}')
-            # 创建缓存区地址(留着给打包用吧，单个文件不用)
-            # extract_text.find_dir(name=os.path.join(book_id, episode_id), path=storage_path)
-        elif os.path.isfile(file_addr):
-            # 如果有文件在，直接抛了读
-            print(f'strength throung episode_obj====>{episode_obj}')
-        else:
-            file_addr = cls.set_file(book_id, episode_id)
 
-        return { 'file_addr': file_addr, 'file_name': file_name}
+        return { 'file_addr': file_addr}
     
     @classmethod
     def get_episode_text(cls, book_id, episode_id):
         # 先根据服务器地址查文件，如果没有再创建文件(并缓存至缓存地址改名)然后抛出服务器地址
         # 缓存地址一天一清理(打包再用)
+        print(f'get_episode_text book_id====>{book_id} episode_id====>{episode_id}')
         episode_obj = Episode.objects.get(episode_id=episode_id)
+        print(f'episode_obj====>{episode_obj}')
         file_addr = episode_obj.server_address
-        file_name = '{0}-{1}'.format(episode_obj.main_title, episode_obj.sub_title)
         print(f'file_addr====>{file_addr}')
+        file_name = '{0}-{1}'.format(episode_obj.main_title, episode_obj.sub_title)
         if not file_addr:
             # 存文件
             file_addr = cls.set_file(book_id, episode_id)

@@ -15,6 +15,7 @@ urlpatterns = [
     path('implapi/episode/updateEpisode', EpisodeViewSet.as_view({'post': 'update_episodelist'}), name='update-episodelist'),
     path('implapi/episode/text', EpisodeViewSet.as_view({'get': 'get_episode_text'}), name='episode-text'),
     path('implapi/episode/getFile', EpisodeViewSet.as_view({'get': 'get_episode_file'}), name='episode-file'),
+    path('implapi/episode/getAddr', EpisodeViewSet.as_view({'get': 'get_episode_addr'}), name='episode-addr'),
     path('implapi/books/getSearchedList', BookViewSet.as_view({'get': 'get_searched_list'}), name='searched-list'),
     path('implapi/books/getSearchedBook', BookViewSet.as_view({'post': 'get_searched_book'}), name='searched-book'),
     path('implapi/books/updateList', BookViewSet.as_view({'get': 'update_hotlist'}), name='update-hotlist'),

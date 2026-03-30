@@ -106,6 +106,13 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         book_id = request.data.get('bookId', None)
         res = UpdateController().update_episodelist(book_id)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
+    
+    @action(detail=False, methods=['GET'])
+    def get_episode_addr(self, request, *args, **kwargs):
+        episode_id = request.query_params.get('episodeId', None)
+        res = EpisodeController().getEpisodeAddr(episode_id)
+        return HttpResponse(json.dumps(res, ensure_ascii=False))
+        # return Response(res)
     # episode/list
     # @action(detail=False, methods=['get'])
     # def get_episode_list(self, request, *args, **kwargs):
