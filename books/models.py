@@ -43,3 +43,5 @@ class Episode(models.Model):
     isupdated = models.CharField(max_length=10, default=1)
     # 该章节在服务器上储存地址
     server_address = models.TextField(blank=True, null=False, default='')
+    # 该章节是否正在爬取 0-空的 1-正在爬 2-爬取完成
+    is_crawling = models.CharField(max_length=10, default=0)

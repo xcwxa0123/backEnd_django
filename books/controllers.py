@@ -12,14 +12,27 @@ class EpisodeController:
             return { 'data': {}, 'code': 500, 'msg': e }
         else:
             return { 'data': resData, 'code': 200, 'msg': 'success' }
-        
+                
     def getEpisodeAddr(self, episode_id):
+        print(f'episode_id===>{episode_id}')
         resData = {}
         if not episode_id:
             return { 'data': {}, 'code': 500, 'msg': '主键id有误' }
         try:
             
             resData = EpisodeService.get_episode_addr(episode_id)
+        except Exception as e:
+            return { 'data': {}, 'code': 500, 'msg': e }
+        else:
+            return { 'data': resData, 'code': 200, 'msg': 'success' }
+        
+    def getEpisodeStatus(self, episode_id):
+        resData = {}
+        if not episode_id:
+            return { 'data': {}, 'code': 500, 'msg': '主键id有误' }
+        try:
+            
+            resData = EpisodeService.get_episode_status(episode_id)
         except Exception as e:
             return { 'data': {}, 'code': 500, 'msg': e }
         else:

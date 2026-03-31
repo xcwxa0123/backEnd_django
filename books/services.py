@@ -1,5 +1,6 @@
 import random
 import json
+import threading
 
 import requests
 from bs4 import BeautifulSoup
@@ -31,7 +32,7 @@ class BaseService:
 
         # 先访问首页拿 cookie
         session.get("https://kakuyomu.jp/", headers=headers)
-        time.sleep(random.uniform(1, 3))
+        time.sleep(random.uniform(2, 5))
 
         res = session.get(url, headers=headers)
 
@@ -45,7 +46,8 @@ class UpdateService(BaseService):
     @classmethod
     def update_hotlist(cls, page_index):
         print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        soup = cls.get_soup("https://kakuyomu.jp/tags/%E7%99%BE%E5%90%88?page={}".format(page_index))
+        soup = cls.get_soup("https://kakuyomu.jp/tags/怪談?page={}".format(page_index))
+        # soup = cls.get_soup("https://kakuyomu.jp/search?genre_name=horror?page={}".format(page_index))
         # soup = cls.get_soup("https://kakuyomu.jp/")
         # 大模块
         moudle_list = soup.find_all('div', class_='widget-work float-parent')
@@ -99,13 +101,16 @@ class UpdateService(BaseService):
                     target_list.update(hot_rank=999)
 
                     AuthorCURDController().update_author(author_data)
+                    print(f'author update================>{author_name}')
 
-                    # 先不爬章节，页面结构变了，得从__NEXT_DATA__里面爬，为了避免防爬，在点进页面之后再爬
-                    # cls.update_detail(book_data[book_id])
 
                     # return;
                     BookCURDController().update_book(book_data)
+                    print(f'book update================>{book_title}')
                     # return;
+                    # 先不爬章节，页面结构变了，得从__NEXT_DATA__里面爬，为了避免防爬，在点进页面之后再爬
+                    cls.update_detail(book_data['book_id'])
+                    print(f'{book_title}的章节更新================>success')
 
                 except Exception as e:
                     print(f'ERROR================>{e}')
@@ -118,68 +123,73 @@ class UpdateService(BaseService):
     # 改为传id，自己查，能进来的肯定都有id且有对应book
     @classmethod
     def update_detail(cls, book_id):
-        # print(f'进来了,看看data========>{book_data}')
-        # print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        # 用book_id查到该book下episode是否存在，如果存在就直接return
-        is_episode_exists = Episode.objects.filter(book_id=book_id).exists()
-        if is_episode_exists:
-            print(f'{book_id}============>章节数据已存在，无需更新')
-            return
+        try:
+            # print(f'进来了,看看data========>{book_data}')
+            # print('caution!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            # 用book_id查到该book下episode是否存在，如果存在就直接return
+            is_episode_exists = Episode.objects.filter(book_id=book_id).exists()
+            print(f'{book_id}============>章节数据是否已存在: {is_episode_exists}')
+            if is_episode_exists:
+                print(f'{book_id}============>章节数据已存在，无需更新')
+                return
 
-        book_obj = Book.objects.get(book_id=book_id)
-        soup = cls.get_soup("https://kakuyomu.jp/works/{}".format(book_id))
-        # soup = cls.get_soup("https://kakuyomu.jp/works/{}".format('16818093079992812465'))
-        print(f'{book_obj.book_title}============>开始更新')
-        
-        data = soup.find("script", id="__NEXT_DATA__").string
-        json_data = json.loads(data)
-        page_data = json_data.get('props', {}).get('pageProps', {}).get('__APOLLO_STATE__', {})
-        # print(f'page_data============>{page_data}')
-        full_desc = page_data.get('Work:{}'.format(book_id), {}).get('introduction', '')
-        # full_desc = page_data.get('Work:{}'.format('16818093079992812465'), {}).get('introduction', '')
-        print(f'full_desc============>{full_desc}')
-        for key, value in page_data.items():
-            if key.startswith('TableOfContentsChapter:'):
-                print(f'进循环了============>{value}')
-                search_chapter_key = value.get('chapter').get('__ref') if value.get('chapter') else 999
-                print(f'chapter_key============>{search_chapter_key}')
-                main_title = page_data.get(search_chapter_key).get('title') if search_chapter_key != 999 else 'blank'
-                print(f'main_title============>{main_title}')
-                for episode_v in value.get('episodeUnions', []):
-                    data_key = episode_v.get('__ref')
-                    print(f'data_key============>{data_key}')
-                    time_str = page_data.get(data_key).get('publishedAt')
-                    print(f'time_str============>{time_str}')
-                    dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
-                    # print(f'dt============>{dt}')
-                    # print(f'refresh_time============>{f"{dt.year}年{dt.month}月{dt.day}日 {dt.hour:02d}:{dt.minute:02d}"}')
-                    episode_item = {
-                        'episode_id': page_data.get(data_key).get('id'),
-                        'book_id': book_id,
-                        # 'book_id': '16818093079992812465',
-                        'main_title': main_title,
-                        'chapter_key': value.get('id') if value.get('id') else page_data.get(data_key).get('id'),
-                        'sub_title': page_data.get(data_key).get('title'),
-                        'refresh_time': f"{dt.year}年{dt.month}月{dt.day}日 {dt.hour:02d}:{dt.minute:02d}",
-                        'isupdated': 0,
-                        'server_address': ''
-                    }
-                    cls.update_epilist(episode_item, book_id)
-                    # cls.update_epilist(episode_item, '16818093079992812465')
+            book_obj = Book.objects.get(book_id=book_id)
+            print(f'{book_obj.book_title}============>开始更新章节数据')
+            soup = cls.get_soup("https://kakuyomu.jp/works/{}".format(book_id))
+            # soup = cls.get_soup("https://kakuyomu.jp/works/{}".format('16818093079992812465'))
+            print(f'{book_obj.book_title}============>开始更新')
+            
+            data = soup.find("script", id="__NEXT_DATA__").string
+            json_data = json.loads(data)
+            page_data = json_data.get('props', {}).get('pageProps', {}).get('__APOLLO_STATE__', {})
+            # print(f'page_data============>{page_data}')
+            full_desc = page_data.get('Work:{}'.format(book_id), {}).get('introduction', '')
+            # full_desc = page_data.get('Work:{}'.format('16818093079992812465'), {}).get('introduction', '')
+            print(f'full_desc============>{full_desc}')
+            for key, value in page_data.items():
+                if key.startswith('TableOfContentsChapter:'):
+                    print(f'进循环了============>{value}')
+                    search_chapter_key = value.get('chapter').get('__ref') if value.get('chapter') else 999
+                    print(f'chapter_key============>{search_chapter_key}')
+                    main_title = page_data.get(search_chapter_key).get('title') if search_chapter_key != 999 else 'blank'
+                    print(f'main_title============>{main_title}')
+                    for episode_v in value.get('episodeUnions', []):
+                        data_key = episode_v.get('__ref')
+                        print(f'data_key============>{data_key}')
+                        time_str = page_data.get(data_key).get('publishedAt')
+                        print(f'time_str============>{time_str}')
+                        dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+                        # print(f'dt============>{dt}')
+                        # print(f'refresh_time============>{f"{dt.year}年{dt.month}月{dt.day}日 {dt.hour:02d}:{dt.minute:02d}"}')
+                        episode_item = {
+                            'episode_id': page_data.get(data_key).get('id'),
+                            'book_id': book_id,
+                            # 'book_id': '16818093079992812465',
+                            'main_title': main_title,
+                            'chapter_key': value.get('id') if value.get('id') else page_data.get(data_key).get('id'),
+                            'sub_title': page_data.get(data_key).get('title'),
+                            'refresh_time': f"{dt.year}年{dt.month}月{dt.day}日 {dt.hour:02d}:{dt.minute:02d}",
+                            'isupdated': 0,
+                            'server_address': '',
+                            'is_crawling': 0,
+                        }
+                        cls.update_epilist(episode_item, book_id)
+                        # cls.update_epilist(episode_item, '16818093079992812465')
 
-        print(f'{book_obj.book_title}============>的章节数据更新完了')
+            print(f'{book_obj.book_title}============>的章节数据更新完了')
 
-        book_obj.full_desc = full_desc
-        book_obj.save()
-        # episode data
-        # book_obj.update({
-        #     'last_time': last_time.text,
-        #     'full_desc': full_desc
-        #     'number_of_episode': number_of_episode.text, 
-        #     'publish_state': 0 if publish_state.text == '完結済' else 1
-        # })
-        # BookCURDController().update_book(book_data)
-        
+            book_obj.full_desc = full_desc
+            book_obj.save()
+            # episode data
+            # book_obj.update({
+            #     'last_time': last_time.text,
+            #     'full_desc': full_desc
+            #     'number_of_episode': number_of_episode.text, 
+            #     'publish_state': 0 if publish_state.text == '完結済' else 1
+            # })
+            # BookCURDController().update_book(book_data)
+        except Exception as e:
+            print(f'Error occurred while updating book and episodes=====================>: {e}')
 
     # 进表操作 逻辑有问题 需要重更新写，功能应该是点击按钮后手动刷新
     @classmethod
@@ -237,6 +247,7 @@ class UpdateService(BaseService):
                 'refresh_time': episode_item.get('refresh_time'),
                 'isupdated': 0,
                 'server_address': '',
+                'is_crawling': 0,
             }
             EpisodeCURDController().update_episode(episode_data)
 
@@ -297,53 +308,74 @@ class EpisodeService(BaseService):
         dir_addr = extract_text.find_dir(name=book_id, path=storage_path)
         # 存文件
         file_addr = extract_text.set_file(text=text_content, file_addr='{0}/{1}.txt'.format(dir_addr, episode_id))
-        return file_addr
+        episode_obj = Episode.objects.get(episode_id=episode_id)
+        episode_obj.server_address = file_addr
+        episode_obj.is_crawling = '2'
+        episode_obj.save()
         
     # 纯返回地址，给前端轮询用
+    @classmethod
+    def get_episode_status(cls, episode_id):
+        episode_obj = Episode.objects.get(episode_id=episode_id)
+        print(f'episode_obj.book.book_id=========================>{episode_obj.book.book_id}')
+        status = episode_obj.is_crawling
+        print(f'status=========================>{status}')
+        # 0-空的 1-正在爬 2-爬取完成
+        if status == '0':
+            # 没爬过，开始爬
+            cls.get_episode_text(episode_obj.book.book_id, episode_id)
+            return { 'status': 'processing' }
+        elif status == '1':
+            return { 'status': 'processing' }
+        else:
+            return { 'status': 'done' }
+    
+    # 纯开给下载文件用
     @classmethod
     def get_episode_addr(cls, episode_id):
         episode_obj = Episode.objects.get(episode_id=episode_id)
         file_addr = episode_obj.server_address
         print(f'file_addr====>{file_addr}')
 
-        return { 'file_addr': file_addr}
-    
+        return { 'file_addr': file_addr, 'file_name': '{0}-{1}'.format(episode_obj.main_title, episode_obj.sub_title) }
+
     @classmethod
     def get_episode_text(cls, book_id, episode_id):
         # 先根据服务器地址查文件，如果没有再创建文件(并缓存至缓存地址改名)然后抛出服务器地址
         # 缓存地址一天一清理(打包再用)
-        print(f'get_episode_text book_id====>{book_id} episode_id====>{episode_id}')
         episode_obj = Episode.objects.get(episode_id=episode_id)
         print(f'episode_obj====>{episode_obj}')
         file_addr = episode_obj.server_address
         print(f'file_addr====>{file_addr}')
         file_name = '{0}-{1}'.format(episode_obj.main_title, episode_obj.sub_title)
-        if not file_addr:
-            # 存文件
-            file_addr = cls.set_file(book_id, episode_id)
-            if file_addr:
-                episode_obj.server_address = file_addr
-                episode_obj.save()
-                print(f'episode_obj====>{episode_obj}')
-            else:
-                print(f'episode_obj====>{episode_obj}')
-            # 创建缓存区地址(留着给打包用吧，单个文件不用)
-            # extract_text.find_dir(name=os.path.join(book_id, episode_id), path=storage_path)
-        elif os.path.isfile(file_addr):
-            # 如果有文件在，直接抛了读
-            print(f'strength throung episode_obj====>{episode_obj}')
-        else:
-            file_addr = cls.set_file(book_id, episode_id)
-
-        file_content = ''
-        try:
-            with open(file_addr, 'r', encoding='utf-8') as file:
-                file_content = file.read()
-        except FileNotFoundError as e:
+        # 创建缓存区地址(留着给打包用吧，单个文件不用)
+        # extract_text.find_dir(name=os.path.join(book_id, episode_id), path=storage_path)
+        if episode_obj.is_crawling == '1':
+            return { 'file_content': '', 'file_name': '', 'status': 'processing' }
+        
+        elif episode_obj.is_crawling == '2':
+            file_addr = episode_obj.server_address
             file_content = ''
+            try:
+                with open(file_addr, 'r', encoding='utf-8') as file:
+                    file_content = file.read()
+            except FileNotFoundError as e:
+                file_content = ''
 
-        return { 'file_content': file_content, 'file_name': file_name}
-    
+            return { 'file_content': file_content, 'file_name': file_name, 'status': 'done' }
+        
+
+        # 没爬过，开始爬
+        update = Episode.objects.filter(episode_id=episode_id, is_crawling='0').update(is_crawling='1')
+        if update:
+            # 存文件
+            threading.Thread(
+                target=cls.set_file,
+                args=(book_id, episode_id)
+            ).start()
+            return { 'file_content': '', 'file_name': '', 'status': 'processing' }
+
+
 class SearchService(BaseService):
     # 搜索列表
     @classmethod

@@ -78,11 +78,14 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
     # episode/file
     @action(detail=False, methods=['GET'])
     def get_episode_file(self, request, *args, **kwargs):
-        book_id = request.query_params.get('bookId', None)
+        # book_id = request.query_params.get('bookId', None)
         episode_id = request.query_params.get('episodeId', None)
-        res = EpisodeController().getEpisodeFile(book_id, episode_id)
+        print(f'view层的入参episode_id===>{episode_id}')
+        print(f'view层的入参request===>{request}')
+        res = EpisodeController().getEpisodeAddr(episode_id)
         code = res.get('code')
         data = res.get('data')
+        print(f'code===>{code}, data===>{data}')
         if code == 200 and data.get('file_addr'):
             with open(data.get('file_addr'), 'rb') as f:
                 filename = urllib.parse.quote(data.get('file_name'), safe='')
@@ -108,9 +111,9 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         return HttpResponse(json.dumps(res, ensure_ascii=False))
     
     @action(detail=False, methods=['GET'])
-    def get_episode_addr(self, request, *args, **kwargs):
+    def get_episode_status(self, request, *args, **kwargs):
         episode_id = request.query_params.get('episodeId', None)
-        res = EpisodeController().getEpisodeAddr(episode_id)
+        res = EpisodeController().getEpisodeStatus(episode_id)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
         # return Response(res)
     # episode/list

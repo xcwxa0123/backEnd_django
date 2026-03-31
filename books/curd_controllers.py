@@ -16,20 +16,23 @@ class AuthorCURDController:
             return None
     
     def update_author(self, author_data):
-        copy_data = copy.deepcopy(author_data)
-        author_id = copy_data.get('author_id')
-        author_obj = self.get_author(author_id)
-        if author_obj:
-            copy_data.pop('author_id')
-            update_key = 0
-            for key, value in copy_data.items():
-                if getattr(author_obj, key) != value:
-                    setattr(author_obj, key, value)
-                    update_key = 1
-            if update_key:
-                author_obj.save()
-        else:
-            self.create_author(copy_data)
+        try:
+            copy_data = copy.deepcopy(author_data)
+            author_id = copy_data.get('author_id')
+            author_obj = self.get_author(author_id)
+            if author_obj:
+                copy_data.pop('author_id')
+                update_key = 0
+                for key, value in copy_data.items():
+                    if getattr(author_obj, key) != value:
+                        setattr(author_obj, key, value)
+                        update_key = 1
+                if update_key:
+                    author_obj.save()
+            else:
+                self.create_author(copy_data)
+        except Exception as e:
+            print(f'author update error================>{e}')
 
 class BookCURDController:
     # 创建或更新
@@ -58,22 +61,25 @@ class BookCURDController:
         
     def update_book(self, book_data):
         # pdb.set_trace()
-        copy_data = copy.deepcopy(book_data)
-        book_id = copy_data.get('book_id')
-        book_obj = self.get_book(book_id)
-        if book_obj:
-            copy_data.pop('book_id')
-            copy_data.pop('author_id')
-            update_key = 0
-            for key, value in copy_data.items():
-                if getattr(book_obj, key) != value:
-                    setattr(book_obj, key, value)
-                    update_key = 1
-                # book_obj[key] = value
-            if update_key:
-                book_obj.save()
-        else:
-            self.create_book(copy_data)
+        try:
+            copy_data = copy.deepcopy(book_data)
+            book_id = copy_data.get('book_id')
+            book_obj = self.get_book(book_id)
+            if book_obj:
+                copy_data.pop('book_id')
+                copy_data.pop('author_id')
+                update_key = 0
+                for key, value in copy_data.items():
+                    if getattr(book_obj, key) != value:
+                        setattr(book_obj, key, value)
+                        update_key = 1
+                    # book_obj[key] = value
+                if update_key:
+                    book_obj.save()
+            else:
+                self.create_book(copy_data)
+        except Exception as e:
+            print(f'book update error================>{e}')
 
 class EpisodeCURDController:
     # 创建或更新
