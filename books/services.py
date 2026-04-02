@@ -384,33 +384,60 @@ class SearchService(BaseService):
         soup = cls.get_soup("https://kakuyomu.jp/search?q={0}&page={1}".format(search_name, page_index))
         moudle_list = soup.find_all('div', class_='Gap_size-2s__r5pBU Gap_direction-y__ELoPO')
         result = []
-        for index, moudle in enumerate(moudle_list):
-            book_moudle = moudle.select('.Gap_size-4s__P2EWr.Gap_direction-x__3b2TF a')
-            if not len(book_moudle):
-                continue
-            book_title = book_moudle[0]['title']
-            book_href = book_moudle[0]['href']
-            author_moudle = moudle.select('.partialGiftWidgetActivityName.ActivityName_inlineBlock__TBG1H a')[0]
-            author_name = author_moudle.text
-            author_href = author_moudle['href']
-            book_desc = moudle.select('.partialGiftWidgetWeakText span')[0].text
-            author_id = author_href.split('/')[-1]
-            book_id = book_href.split('/')[-1]
-            hot_rank = 999
-            [publish_state, number_of_episode] = moudle.select('.Meta_lineHeightSmall__fM62M li:nth-child(3) .Meta_metaItem__c_ZZh')[0].text.split(' ')
-            last_time = moudle.select('.Meta_lineHeightSmall__fM62M li:nth-child(5) .Meta_metaItem__c_ZZh time')[0].text
-            author_data = { 'author_id': author_id, 'author_name': author_name }
-            book_data = {
-                'author': author_data,
-                'book_desc': book_desc,
-                'book_id': book_id,
-                'book_title': book_title,
-                'hot_rank': hot_rank,
-                'last_time': last_time,
-                'number_of_episode': number_of_episode,
-                'publish_state': 0 if publish_state == '完結済' else 1
-            }
-            result.append(book_data)
+        data = soup.find("script", id="__NEXT_DATA__").string
+        json_data = json.loads(data)
+        page_data = json_data.get('props', {}).get('pageProps', {}).get('__APOLLO_STATE__', {})
+        for key, value in page_data.items():
+            if key.startswith('Work:'):
+                book_id = value.get('id')
+                book_title = value.get('title')
+                book_desc = value.get('introduction', '無')
+                author_id = value.get('author', {}).get('__ref', '').split(':')[-1]
+                author_name = page_data.get(value.get('author', {}).get('__ref', ''), {}).get('activityName', '')
+                hot_rank = 999
+                last_time = value.get('lastEpisodePublishedAt', '')
+                publish_state = value.get('serialStatus', '')
+                number_of_episode = value.get('publicEpisodeCount', 0)
+                author_data = { 'author_id': author_id, 'author_name': author_name }
+                dt = datetime.strptime(last_time, "%Y-%m-%dT%H:%M:%SZ")
+                book_data = {
+                    'author': author_data,
+                    'book_desc': book_desc,
+                    'book_id': book_id,
+                    'book_title': book_title,
+                    'hot_rank': hot_rank,
+                    'last_time': f"{dt.year}年{dt.month}月{dt.day}日 {dt.hour:02d}:{dt.minute:02d}",
+                    'number_of_episode': number_of_episode,
+                    'publish_state': 0 if publish_state == 'COMPLETED' else 1
+                }
+                result.append(book_data)
+        # for index, moudle in enumerate(moudle_list):
+        #     book_moudle = moudle.select('.Gap_size-4s__P2EWr.Gap_direction-x__3b2TF a')
+        #     if not len(book_moudle):
+        #         continue
+        #     book_title = book_moudle[0]['title']
+        #     book_href = book_moudle[0]['href']
+        #     author_moudle = moudle.select('.partialGiftWidgetActivityName.ActivityName_inlineBlock__TBG1H a')[0]
+        #     author_name = author_moudle.text
+        #     author_href = author_moudle['href']
+        #     book_desc = moudle.select('.partialGiftWidgetWeakText span')[0].text
+        #     author_id = author_href.split('/')[-1]
+        #     book_id = book_href.split('/')[-1]
+        #     hot_rank = 999
+        #     [publish_state, number_of_episode] = moudle.select('.Meta_lineHeightSmall__fM62M li:nth-child(3) .Meta_metaItem__c_ZZh')[0].text.split(' ')
+        #     last_time = moudle.select('.Meta_lineHeightSmall__fM62M li:nth-child(5) .Meta_metaItem__c_ZZh time')[0].text
+        #     author_data = { 'author_id': author_id, 'author_name': author_name }
+        #     book_data = {
+        #         'author': author_data,
+        #         'book_desc': book_desc,
+        #         'book_id': book_id,
+        #         'book_title': book_title,
+        #         'hot_rank': hot_rank,
+        #         'last_time': last_time,
+        #         'number_of_episode': number_of_episode,
+        #         'publish_state': 0 if publish_state == '完結済' else 1
+        #     }
+        #     result.append(book_data)
         return result
         
     # 搜索列表点进特定book的详情，入库
@@ -427,8 +454,23 @@ class SearchService(BaseService):
 
         
         book_target = Book.objects.filter(book_id=book_id)
+        print(f'book_target============>{book_target}')
         if not book_target:
-            UpdateService.update_detail(book_id, copy_data)
+            # 先存书籍数据
+            book_data = {
+                'book_id': book_id, 
+                'author_id': author_data.get('author_id'), 
+                'book_title': copy_data.get('book_title'), 
+                'book_desc': copy_data.get('book_desc'), 
+                'hot_rank': copy_data.get('hot_rank'),
+                'last_time': copy_data.get('last_time'),
+                'full_desc': copy_data.get('book_desc'),
+                'number_of_episode': copy_data.get('number_of_episode'), 
+                'publish_state': copy_data.get('publish_state')
+            }
+            BookCURDController().update_book(book_data)
+
+            UpdateService.update_detail(book_id)
         # Episode.objects.get(book=book_id)
         # episode_list = Episode.objects.filter(book=book_id)
         # serializer = EpisodeSerializer(episode_list, many=True)

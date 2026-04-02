@@ -39,6 +39,7 @@ class BookViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retriev
     
     @action(detail=False, methods=['POST'])
     def get_searched_book(self, request, *args, **kwargs):
+        print(f'request.data===>{request.data}')
         book_data = request.data.get('bookData', None)
         res = SearchController().get_searched_book(book_data)
         return HttpResponse(json.dumps(res, ensure_ascii=False))
@@ -53,7 +54,7 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
     # pagination_class = BookPageNation
 
     def list(self, request, *args, **kwargs):
-        # ✅ 先走过滤逻辑（很重要，不然你 filter 白写了）
+        # 先走过滤逻辑
         queryset = self.filter_queryset(self.get_queryset())
 
         # 如果你用 serializer（推荐）
@@ -61,7 +62,7 @@ class EpisodeViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.Retr
         data = serializer.data
         # copy_data = copy.deepcopy(data)
 
-        # ✅ 分组
+        # 分组
         grouped = defaultdict(list)
         for index, item in enumerate(data):
             key = item['chapter_key']
