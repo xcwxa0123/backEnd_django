@@ -3,6 +3,18 @@
 ps -ef | grep gunicorn 
 pm2 start "nohup gunicorn --access-logfile /var/log/gunicorn/access.log --error-logfile /var/log/gunicorn/error.log --bind=0.0.0.0:8000 backEnd_django.wsgi &" --name=backend_py
 gunicorn --bind=0.0.0.0:8000 backEnd_django.wsgi & 
+
+gunicorn backEnd_django.wsgi:application --bind 0.0.0.0:8000
+
+echo "alias pm2startback='pm2 start \"gunicorn backEnd_django.wsgi:application --bind 0.0.0.0:8000\" --name django'" >> ~/.bashrc
+echo "alias pm2startfront='pm2 start pm2.config.cjs --name soymilk --env production'" >> ~/.bashrc
+echo "alias soyenv='source /home/admin/SoySauce/backend/backEnd_django/soysauce/bin/activate'" >> ~/.bashrc
+echo "alias cdbackendpro='cd /home/admin/SoySauce/backend/backEnd_django'" >> ~/.bashrc
+echo "alias cdfrontendpro='cd /home/admin/SoySauce/frontend/soymilk'" >> ~/.bashrc
+echo "alias see80='sudo lsof -i :80'" >> ~/.bashrc
+
+source ~/.bashrc
+
 pkill gunicorn
 
 虚拟环境 source ~/project/back_end/backEnd_django/drfEnv/bin/activate
