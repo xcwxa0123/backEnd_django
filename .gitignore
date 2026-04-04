@@ -17,3 +17,4 @@ backEnd_django/__pycache__/settings.cpython-311.pyc
 
 **/migrations/
 *.txt
+urls.md
