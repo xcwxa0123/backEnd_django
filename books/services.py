@@ -158,7 +158,10 @@ class UpdateService(BaseService):
                         print(f'data_key============>{data_key}')
                         time_str = page_data.get(data_key).get('publishedAt')
                         print(f'time_str============>{time_str}')
-                        dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+                        try:
+                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%SZ")
+                        except Exception:
+                            dt = datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%fZ")
                         # print(f'dt============>{dt}')
                         # print(f'refresh_time============>{f"{dt.year}年{dt.month}月{dt.day}日 {dt.hour:02d}:{dt.minute:02d}"}')
                         episode_item = {
@@ -468,9 +471,21 @@ class SearchService(BaseService):
                 'number_of_episode': copy_data.get('number_of_episode'), 
                 'publish_state': copy_data.get('publish_state')
             }
-            BookCURDController().update_book(book_data)
+            try:
+                BookCURDController().update_book(book_data)
+                UpdateService.update_detail(book_id)
+                return { 'msg': 'success' }
+            except Exception as e:
+                print(f'Error occurred while updating book: {e}')
+                return { 'msg': 'error' }
+        else:
+            try:
+                UpdateService.update_detail(book_id)
+                return { 'msg': 'success' }
+            except Exception as e:
+                print(f'Error occurred while updating book and episodes=====================>: {e}')
+                return { 'msg': 'error' }
 
-            UpdateService.update_detail(book_id)
         # Episode.objects.get(book=book_id)
         # episode_list = Episode.objects.filter(book=book_id)
         # serializer = EpisodeSerializer(episode_list, many=True)
