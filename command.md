@@ -7,8 +7,10 @@ gunicorn --bind=0.0.0.0:8000 backEnd_django.wsgi &
 gunicorn backEnd_django.wsgi:application --bind 0.0.0.0:8000
 
 echo "alias pm2startback='pm2 start \"gunicorn backEnd_django.wsgi:application --bind 0.0.0.0:8000\" --name django'" >> ~/.bashrc
+echo "alias pm2startchat='pm2 start \"uvicorn main:app --host 0.0.0.0 --port 8001\" --name chat'" >> ~/.bashrc
 echo "alias pm2startfront='pm2 start pm2.config.cjs --name soymilk --env production'" >> ~/.bashrc
 echo "alias soyenv='source /home/admin/SoySauce/backend/backEnd_django/soysauce/bin/activate'" >> ~/.bashrc
+echo "alias chatenv='source /home/admin/SoySauce/backend/backend_fastAPI/chatenv/bin/activate'" >> ~/.bashrc
 echo "alias cdbackendpro='cd /home/admin/SoySauce/backend/backEnd_django'" >> ~/.bashrc
 echo "alias cdfrontendpro='cd /home/admin/SoySauce/frontend/soymilk'" >> ~/.bashrc
 echo "alias see80='sudo lsof -i :80'" >> ~/.bashrc
